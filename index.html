@@ -136,115 +136,132 @@ body{
 .chip-h{background:rgba(var(--acc2-rgb),.2);color:var(--acc2)}
 
 /* ══════════════════════════════════════
-   FLOATING ISLAND TAB BAR
-   ─ アイランド本体は position:absolute
-     wrapper (.lg-bottom) は safe-area 確保用のスペーサー
+   FLOATING ISLAND TAB BAR  v231
 ══════════════════════════════════════ */
 
-/* wrapper: 高さ確保・背景なし */
-.lg-bottom{
-  position:absolute;bottom:0;left:0;right:0;
-  z-index:50;
-  background:none;
-  border:none;
-  /* safe-area 下部を padding で確保 */
-  padding-bottom:env(safe-area-inset-bottom);
-  /* アイランドの実高 + 下マージン分の高さ */
-  height:calc(62px + env(safe-area-inset-bottom));
-  pointer-events:none; /* wrapper 自体はクリックを通過 */
-}
-
-/* ══════════════════════════════════════
-   FLOATING ISLAND TAB BAR  v229
-══════════════════════════════════════ */
-
-/* wrapper */
+/* wrapper：safe-area確保のみ */
 .lg-bottom{
   position:absolute;bottom:0;left:0;right:0;
   z-index:50;background:none;border:none;
   padding-bottom:env(safe-area-inset-bottom);
-  height:calc(68px + env(safe-area-inset-bottom));
+  height:calc(72px + env(safe-area-inset-bottom));
   pointer-events:none;
 }
 
 /* アイランド本体 */
 .tab-island{
   position:absolute;
-  bottom:10px;
-  left:50%;
-  transform:translateX(-50%);
+  bottom:10px;left:50%;
+  transform:translateX(-50%) scale(1);
+  transform-origin:center bottom;
   pointer-events:auto;
   display:flex;align-items:center;
-  padding:0 8px;
-  height:54px;
-  border-radius:27px;
-  min-width:220px;
-  /* 強力ブラー＋高彩度で厚みのあるガラス */
+  padding:0 6px;
+  height:56px;
+  border-radius:28px;
+  /* 強力ブラー */
   background:var(--lg-bg);
-  backdrop-filter:blur(40px) saturate(200%);
-  -webkit-backdrop-filter:blur(40px) saturate(200%);
-  /* 0.5px極細ベゼル */
+  backdrop-filter:blur(44px) saturate(210%);
+  -webkit-backdrop-filter:blur(44px) saturate(210%);
+  /* 0.5px 極細ベゼル */
   border:0.5px solid var(--lg-brd);
-  /* ソフトなマルチレイヤーシャドウ */
   box-shadow:
     inset 0 0.5px 0 var(--lg-top-shine),
-    inset 0 -0.5px 0 rgba(0,0,0,0.06),
-    0 8px 48px rgba(0,0,0,0.12),
-    0 3px 14px rgba(0,0,0,0.07),
-    0 1px 2px rgba(0,0,0,0.05);
-  transition:width .40s cubic-bezier(.34,1.26,.64,1);
-  overflow:visible;
+    inset 0 -0.5px 0 rgba(0,0,0,0.05),
+    0 10px 56px rgba(0,0,0,0.14),
+    0 4px 16px rgba(0,0,0,0.08),
+    0 1px 3px rgba(0,0,0,0.05);
+  /* 幅モーフ＋タッチ時スケール */
+  transition:
+    width .38s cubic-bezier(.34,1.26,.64,1),
+    transform .22s cubic-bezier(.34,1.56,.64,1);
+  overflow:visible; /* ピルのはみ出し許容 */
   white-space:nowrap;
+  will-change:transform;
+}
+/* タッチ中に少し大きくなる */
+.tab-island.pressed{
+  transform:translateX(-50%) scale(1.04);
 }
 
-/* 液体ピル（アクティブインジケーター・JSで動かす） */
+/* 液体ピル */
 .tab-pill{
   position:absolute;
-  top:5px;
-  height:44px;
+  /* top/height はJSで動的設定 */
   border-radius:22px;
-  /* すりガラス：彩度抑えた半透明 */
-  background:rgba(var(--acc-rgb),0.09);
-  backdrop-filter:blur(16px) saturate(130%);
-  -webkit-backdrop-filter:blur(16px) saturate(130%);
-  border:0.5px solid rgba(var(--acc-rgb),0.15);
-  box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.28);
-  /* left/width を同時に動かして液体モーフ */
-  transition:
-    left  .44s cubic-bezier(.34,1.18,.64,1),
-    width .44s cubic-bezier(.34,1.18,.64,1);
+  /* すりガラス */
+  background:rgba(var(--acc-rgb),0.10);
+  backdrop-filter:blur(20px) saturate(140%);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);
+  border:0.5px solid rgba(var(--acc-rgb),0.18);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255,255,255,0.32),
+    inset 0 -0.5px 0 rgba(0,0,0,0.04);
   pointer-events:none;
   z-index:0;
+  will-change:left,width,top,height,border-radius,filter;
+}
+/* ドラッグ中：レンズ歪み＋虹色分光フィルター適用 */
+.tab-pill.dragging{
+  filter:url(#pill-lens);
+}
+.tab-pill.dragging.prism{
+  filter:url(#pill-lens) url(#pill-prism);
 }
 
 /* タブボタン */
 .tab-item{
   flex:0 0 auto;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;
-  width:74px;height:50px;
-  padding:6px 0 4px;
+  gap:5px;
+  width:80px;height:52px;
+  padding:7px 0 5px;
   cursor:pointer;border:none;background:none;
   color:var(--lg-txt);
   font-size:9px;
   font-weight:500;font-family:inherit;
   -webkit-user-select:none;user-select:none;
   position:relative;z-index:1;
-  border-radius:22px;
-  transition:color .22s cubic-bezier(.34,1.4,.64,1);
+  border-radius:24px;
   pointer-events:auto;
+  /* colorはJSでclip-pathを使って部分的に切り替えるためtransitionなし */
 }
-.tab-item.on{color:var(--acc)}
+
+/* 非アクティブ色・アクティブ色それぞれを重ねてclipで切り替え */
+.tab-item .tab-label-active{
+  position:absolute;
+  bottom:5px;left:0;right:0;
+  text-align:center;
+  font-size:9px;font-weight:700;
+  color:var(--acc);
+  clip-path:inset(0 100% 0 0); /* 初期：非表示 */
+  transition:none;
+  pointer-events:none;
+}
+.tab-item .tab-icon-active{
+  position:absolute;
+  top:7px;left:50%;transform:translateX(-50%);
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  clip-path:inset(0 100% 0 0);
+  transition:none;
+  pointer-events:none;
+}
+.tab-item .tab-icon-active svg{
+  width:20px;height:20px;
+  stroke:var(--acc);fill:none;
+  stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;
+}
 
 .tab-icon{
   width:22px;height:22px;
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
-  transition:transform .30s cubic-bezier(.34,1.56,.64,1);
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1);
   position:relative;z-index:1;
 }
-.tab-item.on .tab-icon{transform:scale(1.12) translateY(-1px)}
-.tab-item:active .tab-icon{transform:scale(.80)}
+.tab-item.on .tab-icon{transform:scale(1.10) translateY(-1px)}
+.tab-item:active .tab-icon{transform:scale(.82)}
 
 .tab-icon svg{
   width:20px;height:20px;
@@ -257,7 +274,6 @@ body{
 .tab-label{
   font-size:9px;font-weight:500;
   position:relative;z-index:1;
-  transition:font-weight .22s,opacity .22s;
   opacity:.60;line-height:1;letter-spacing:.01em;
 }
 .tab-item.on .tab-label{font-weight:700;opacity:1}
@@ -389,6 +405,29 @@ body{
 </style>
 </head>
 <body>
+<!-- SVG filters for pill lens/prism effects -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none">
+  <defs>
+    <!-- レンズ歪みフィルター -->
+    <filter id="pill-lens" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.025" numOctaves="2" seed="8" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+      <feGaussianBlur in="displaced" stdDeviation="0" result="blurred"/>
+      <feComposite in="blurred" in2="SourceGraphic" operator="over"/>
+    </filter>
+    <!-- 虹色分光フィルター（色収差） -->
+    <filter id="pill-prism" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <!-- R・G・B チャンネルをわずかにずらして色収差を再現 -->
+      <feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
+      <feOffset in="r" dx="1.2" dy="0" result="rOff"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
+      <feOffset in="b" dx="-1.2" dy="0" result="bOff"/>
+      <feBlend in="rOff" in2="g" mode="screen" result="rg"/>
+      <feBlend in="rg" in2="bOff" mode="screen"/>
+    </filter>
+  </defs>
+</svg>
 
 <!-- ══════════════════════════════════════
      CALENDAR VIEW  (全画面)
@@ -396,26 +435,21 @@ body{
 <div id="vcal">
   <!-- グリッド（最背面） -->
   <div class="cal-bg" id="cal-bg">
+    <div id="wlbl" style="position:absolute;top:0;left:0;width:42px;font-size:8px;color:var(--mut);font-weight:500;text-align:center;line-height:1.2;padding:3px 1px 0;pointer-events:none;z-index:1;white-space:pre-line"></div>
     <div class="cal" id="cal-grid"></div>
   </div>
-  <!-- バナー: クォーター・学期チップ（左上フロート） -->
-  <div id="banners" style="display:none;position:absolute;top:8px;left:10px;z-index:40;display:none;flex-wrap:wrap;gap:4px;pointer-events:none"></div>
-  <!-- 週ナビ + 課題追加（右上コーナー、常時表示） -->
-  <div style="position:absolute;top:8px;right:10px;z-index:40;display:flex;align-items:center;gap:5px">
-    <button class="ctrl-chip" id="btn-add-assign" title="課題を追加">
-      <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <div id="banners" style="position:absolute;top:6px;left:52px;z-index:40;display:none;flex-wrap:wrap;gap:4px;pointer-events:none"></div>
+  <div id="cal-controls" style="position:absolute;top:6px;right:8px;z-index:40;display:flex;align-items:center;gap:4px">
+    <button class="ctrl-chip" id="btn-add-assign">
+      <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       課題
     </button>
-    <div class="ctrl-chip" style="display:flex;align-items:center;gap:2px;padding:4px 6px">
-      <button id="btn-prev" style="background:none;border:none;color:var(--acc);font-size:18px;font-weight:300;cursor:pointer;padding:0 2px;line-height:1">‹</button>
-      <span id="wlbl" style="font-size:10px;color:var(--mut);font-weight:500;white-space:nowrap;min-width:72px;text-align:center"></span>
-      <button id="btn-next" style="background:none;border:none;color:var(--acc);font-size:18px;font-weight:300;cursor:pointer;padding:0 2px;line-height:1">›</button>
-    </div>
     <div id="day-toggles" style="display:flex;gap:3px"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
+<!-- ═══════════════════════════════════════
+     ASSIGN VIEW════════
      ASSIGN VIEW
 ══════════════════════════════════════ -->
 <div id="vassign">
@@ -476,6 +510,8 @@ body{
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="16" y1="4" x2="16" y2="2"/><rect x="7" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/><rect x="11" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/></svg>
       </span>
       <span class="tab-label">カレンダー</span>
+      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="16" y1="4" x2="16" y2="2"/><rect x="7" y="13" width="3" height="3" rx="0.5" style="fill:var(--acc);stroke:none"/><rect x="11" y="13" width="3" height="3" rx="0.5" style="fill:var(--acc);stroke:none"/></svg></span>
+      <span class="tab-label-active">カレンダー</span>
     </button>
 
     <button class="tab-item" id="tab-assign" data-tab="assign">
@@ -483,6 +519,8 @@ body{
         <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
       </span>
       <span class="tab-label">課題</span>
+      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+      <span class="tab-label-active">課題</span>
     </button>
 
     <button class="tab-item" id="tab-settings" data-tab="settings">
@@ -490,6 +528,8 @@ body{
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </span>
       <span class="tab-label">設定</span>
+      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+      <span class="tab-label-active">設定</span>
     </button>
 
   </div>
@@ -733,8 +773,9 @@ function renderThemeGrid(){
 
 /* ══════════ LAYOUT ══════════ */
 const TABS=['cal','assign','settings'];
-const TAB_W=74;   // 各タブボタンの幅 px
-const PAD=8;      // アイランド左パディング px
+const TAB_W=80;    // タブボタン幅
+const PAD=6;       // アイランド左右パディング
+const PILL_MARGIN=3; // ピルとアイランド端の距離（元の半分）
 
 function applyBarPadding(){
   const bot=document.getElementById('lg-bottom');
@@ -749,32 +790,92 @@ function applyBarPadding(){
 function sizeIsland(){
   const island=document.getElementById('tab-island');
   if(!island)return;
-  island.style.width=(TABS.length*TAB_W+PAD*2)+'px';
+  const w=TABS.length*TAB_W+PAD*2;
+  island.style.width=w+'px';
   setPillInstant(TABS.indexOf(_tab));
 }
 
-/* ピルをアニメなしで即セット */
+/* ── ピル位置をアニメなしで即セット ── */
 function setPillInstant(idx){
   const pill=document.getElementById('tab-pill');
   if(!pill)return;
+  const islandH=56;
+  const pillH=islandH - PILL_MARGIN*2;  // 端までの距離を半分に（大きめ）
   pill.style.transition='none';
+  pill.style.top=PILL_MARGIN+'px';
+  pill.style.height=pillH+'px';
   pill.style.left=(PAD+idx*TAB_W)+'px';
   pill.style.width=TAB_W+'px';
-  pill.style.borderRadius='22px';
+  pill.style.borderRadius=(pillH/2)+'px';
+  updateClipPaths(PAD+idx*TAB_W, TAB_W);
   requestAnimationFrame(()=>{ pill.style.transition=''; });
 }
 
-/* spring snap アニメ */
+/* ── spring snap ── */
 function snapPill(idx){
   const pill=document.getElementById('tab-pill');
   if(!pill)return;
-  pill.style.transition=
-    'left .40s cubic-bezier(.34,1.22,.64,1),' +
-    'width .40s cubic-bezier(.34,1.22,.64,1),' +
-    'border-radius .40s ease';
-  pill.style.left=(PAD+idx*TAB_W)+'px';
+  const islandH=56;
+  const pillH=islandH - PILL_MARGIN*2;
+  const targetLeft=PAD+idx*TAB_W;
+  pill.style.transition=[
+    'left .42s cubic-bezier(.34,1.22,.64,1)',
+    'width .42s cubic-bezier(.34,1.22,.64,1)',
+    'top .32s cubic-bezier(.34,1.22,.64,1)',
+    'height .32s cubic-bezier(.34,1.22,.64,1)',
+    'border-radius .32s ease',
+    'filter .32s ease'
+  ].join(',');
+  pill.style.top=PILL_MARGIN+'px';
+  pill.style.height=pillH+'px';
+  pill.style.left=targetLeft+'px';
   pill.style.width=TAB_W+'px';
-  pill.style.borderRadius='22px';
+  pill.style.borderRadius=(pillH/2)+'px';
+  pill.classList.remove('dragging','prism');
+  // clip-path をアニメと同期させてアイランドの scale 解除後に更新
+  setTimeout(()=>{ updateClipPaths(targetLeft, TAB_W); },20);
+  /* スナップ完了後に連続更新 */
+  const dur=440;
+  const start=performance.now();
+  const fromLeft=parseFloat(pill.style.left)||targetLeft;
+  function tick(now){
+    const t=Math.min((now-start)/dur,1);
+    // ease out cubic
+    const ease=1-Math.pow(1-t,3);
+    const cur=fromLeft+(targetLeft-fromLeft)*ease;
+    updateClipPaths(cur, TAB_W);
+    if(t<1)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ── clip-path でピルが重なった部分のタブ色を切り替え ── */
+function updateClipPaths(pillLeft, pillWidth){
+  const island=document.getElementById('tab-island');
+  if(!island)return;
+  const islandRect=island.getBoundingClientRect();
+  const items=island.querySelectorAll('.tab-item');
+  items.forEach((item,i)=>{
+    const itemLeft=PAD+i*TAB_W; // アイランド内相対座標
+    // ピルとアイテムの重なり範囲をアイテム内のローカル座標に変換
+    const overlapStart=Math.max(pillLeft, itemLeft)-itemLeft;
+    const overlapEnd=Math.min(pillLeft+pillWidth, itemLeft+TAB_W)-itemLeft;
+    const activeIcon=item.querySelector('.tab-icon-active');
+    const activeLabel=item.querySelector('.tab-label-active');
+    if(!activeIcon||!activeLabel)return;
+    if(overlapEnd<=overlapStart){
+      // 重なりなし
+      activeIcon.style.clipPath='inset(0 100% 0 0)';
+      activeLabel.style.clipPath='inset(0 100% 0 0)';
+    } else {
+      // 重なり部分だけ active 色を表示
+      const l=overlapStart/TAB_W*100;
+      const r=(1-(overlapEnd/TAB_W))*100;
+      const cp=`inset(0 ${r.toFixed(1)}% 0 ${l.toFixed(1)}%)`;
+      activeIcon.style.clipPath=cp;
+      activeLabel.style.clipPath=cp;
+    }
+  });
 }
 
 /* ハプティクス */
@@ -793,7 +894,7 @@ function haptic(){
 let _tab='cal';
 function switchTab(t, skipHaptic){
   if(!skipHaptic)haptic();
-  const prev=_tab; _tab=t;
+  _tab=t;
   document.getElementById('vcal').style.display     =t==='cal'     ?'flex':'none';
   document.getElementById('vassign').style.display  =t==='assign'  ?'flex':'none';
   document.getElementById('vsettings').style.display=t==='settings'?'flex':'none';
@@ -805,12 +906,7 @@ function switchTab(t, skipHaptic){
   applyBarPadding();
 }
 
-/* ══════════ INTERACTIVE PILL DRAG ══════════
-   指の動きに 1:1 でピルを追従させる。
-   - ドラッグ中: ピルの left/width をリアルタイムに更新
-   - 粘性感: 隣タブへ近づくにつれピルが伸び、到達でハプティクス
-   - 離す: threshold 超過→スナップ遷移、未満→元に戻る
-════════════════════════════════════════════ */
+/* ══════════ PILL DRAG（1対1追従） ══════════ */
 function initPillDrag(){
   const island=document.getElementById('tab-island');
   const pill=document.getElementById('tab-pill');
@@ -818,109 +914,136 @@ function initPillDrag(){
 
   let dragging=false;
   let startX=0;
-  let baseIdx=0;        // ドラッグ開始時のタブindex
-  let lastHapticIdx=-1; // ハプティクスを打ったindex
+  let baseIdx=0;
+  let lastHapticIdx=-1;
+  let lastVx=0, lastT=0, lastX=0;
+  const islandH=56;
+  const pillBaseH=islandH-PILL_MARGIN*2;
 
-  /* ── 共通：ドラッグ中のピル位置計算 ── */
-  function updateDrag(curX){
+  function updateDrag(curX, timestamp){
     const dx=curX-startX;
-    const progress=dx/TAB_W;          // -1 〜 +1 が「1タブ分」
-    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
+    const dt=timestamp-lastT||16;
+    const vx=(curX-lastX)/dt; // px/ms
+    lastVx=vx; lastT=timestamp; lastX=curX;
 
-    // 整数部 / 小数部に分解して「引き伸ばし」を計算
-    const lo=Math.floor(targetIdx);
-    const hi=Math.min(lo+1, TABS.length-1);
-    const frac=targetIdx-lo;           // 0.0〜1.0
+    // 何タブ分移動したか（小数）
+    const progress=dx/TAB_W;
+    // ピルの中心インデックス（実数）
+    const centerIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
 
-    // ピルの中心が指に追従する left・width
-    const baseLeft = PAD + lo * TAB_W;
-    const stretch = TAB_W + frac * TAB_W * 0.55; // 最大55%伸び
+    const lo=Math.floor(centerIdx);
+    const hi=Math.min(lo+1,TABS.length-1);
+    const frac=centerIdx-lo; // 0〜1
 
-    // 進行方向によって left を調整（左に伸びる / 右に伸びる）
-    const left = dx>0
-      ? PAD + lo*TAB_W + frac*TAB_W*(1-0.55)  // 右へ：右端を引き伸ばす
-      : PAD + lo*TAB_W;                         // 左へ：左端を引き伸ばす
+    // ─ 伸び（加速度が大きいほど横に細長く）─
+    const speedStretch=Math.min(Math.abs(vx)*0.6, TAB_W*0.7);
+    // frac による隣タブへの引き伸ばし（最大60%）
+    const morphStretch=frac*TAB_W*0.60;
+    const totalStretch=morphStretch+speedStretch;
 
-    // 境界丸み：引き伸び側を直角に近づけてモルフ感
-    const r0 = dx>0 ? 22 : Math.max(8, 22*(1-frac));
-    const r1 = dx>0 ? Math.max(8, 22*(1-frac)) : 22;
-    // border-radius: top-left top-right bottom-right bottom-left
-    pill.style.borderRadius=`${r0}px ${r1}px ${r1}px ${r0}px`;
+    // ─ 膨らみ（ピルがアイランドからはみ出す）─
+    // 移動量に応じて上下に膨らむ
+    const bulge=Math.min(frac*(1-frac)*4*18, 18); // 最大18pxはみ出し
+    const pillH=pillBaseH+bulge*2;
+    const pillTop=PILL_MARGIN-bulge;
+
+    // ─ left / width ─
+    let left, width;
+    if(dx>=0){
+      // 右方向
+      left=PAD+lo*TAB_W;
+      width=TAB_W+totalStretch;
+    } else {
+      // 左方向
+      width=TAB_W+totalStretch;
+      left=PAD+lo*TAB_W+frac*TAB_W-totalStretch+TAB_W*(1-frac);
+      left=PAD+centerIdx*TAB_W-width/2+TAB_W/2;
+      left=Math.max(PAD, Math.min(PAD+(TABS.length-1)*TAB_W+TAB_W-width, left));
+    }
+    // 先端の border-radius：速度で角張る
+    const leadR=Math.max(4, pillH/2 - speedStretch*0.8);
+    const trailR=pillH/2;
+    const br=dx>=0
+      ? `${trailR}px ${leadR}px ${leadR}px ${trailR}px`
+      : `${leadR}px ${trailR}px ${trailR}px ${leadR}px`;
 
     pill.style.transition='none';
+    pill.style.top=pillTop+'px';
+    pill.style.height=pillH+'px';
     pill.style.left=left+'px';
-    pill.style.width=stretch+'px';
+    pill.style.width=width+'px';
+    pill.style.borderRadius=br;
 
-    // 隣タブに到達したらハプティクス
-    const nearest=Math.round(targetIdx);
+    // SVGフィルター：速度が大きいときプリズム追加
+    if(Math.abs(vx)>0.8){
+      pill.classList.add('dragging','prism');
+      // feDisplacementMap の scale を速度に連動
+      const lensEl=document.querySelector('#pill-lens feDisplacementMap');
+      if(lensEl)lensEl.setAttribute('scale', Math.min(Math.abs(vx)*4,14).toFixed(1));
+    } else if(frac>0.05){
+      pill.classList.add('dragging');
+      pill.classList.remove('prism');
+      const lensEl=document.querySelector('#pill-lens feDisplacementMap');
+      if(lensEl)lensEl.setAttribute('scale', (frac*8).toFixed(1));
+    } else {
+      pill.classList.remove('dragging','prism');
+    }
+
+    // clip-path でタブ色をリアルタイム更新
+    updateClipPaths(left, width);
+
+    // ハプティクス
+    const nearest=Math.round(centerIdx);
     if(nearest!==lastHapticIdx && nearest!==baseIdx){
-      lastHapticIdx=nearest;
-      haptic();
+      lastHapticIdx=nearest; haptic();
     }
   }
 
-  /* ── touch ── */
-  island.addEventListener('touchstart', e=>{
+  /* タッチ */
+  island.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
     dragging=true;
     startX=e.touches[0].clientX;
     baseIdx=TABS.indexOf(_tab);
     lastHapticIdx=baseIdx;
+    lastX=startX; lastT=performance.now(); lastVx=0;
     pill.style.transition='none';
+    island.classList.add('pressed');
   },{passive:true});
 
-  island.addEventListener('touchmove', e=>{
+  island.addEventListener('touchmove',e=>{
     if(!dragging||e.touches.length!==1)return;
-    updateDrag(e.touches[0].clientX);
+    updateDrag(e.touches[0].clientX, performance.now());
   },{passive:true});
 
-  island.addEventListener('touchend', e=>{
+  function onEnd(clientX){
     if(!dragging)return;
     dragging=false;
-    const dx=e.changedTouches[0].clientX-startX;
+    island.classList.remove('pressed');
+    const dx=clientX-startX;
     const progress=dx/TAB_W;
-    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
-    const nearest=Math.round(targetIdx);
-    // 閾値 35%：35% 以上移動していれば次のタブへ
-    const threshold=0.35;
-    const newIdx= Math.abs(targetIdx-baseIdx)>=threshold ? nearest : baseIdx;
-    if(newIdx!==baseIdx){
-      switchTab(TABS[newIdx], true);  // ハプティクスは追従中に打ち済み
-    } else {
-      snapPill(baseIdx);  // 元に戻る
-    }
-  },{passive:true});
+    const centerIdx=Math.max(0,Math.min(TABS.length-1,baseIdx-progress));
+    const nearest=Math.round(centerIdx);
+    const newIdx=Math.abs(centerIdx-baseIdx)>=0.35 ? nearest : baseIdx;
+    if(newIdx!==baseIdx) switchTab(TABS[newIdx], true);
+    else snapPill(baseIdx);
+  }
+  island.addEventListener('touchend',e=>{ onEnd(e.changedTouches[0].clientX); },{passive:true});
+  island.addEventListener('touchcancel',()=>{ if(!dragging)return; dragging=false; island.classList.remove('pressed'); snapPill(baseIdx); },{passive:true});
 
-  island.addEventListener('touchcancel', ()=>{
-    if(!dragging)return;
-    dragging=false;
-    snapPill(baseIdx);
-  },{passive:true});
-
-  /* ── mouse（デスクトップ確認用） ── */
-  island.addEventListener('mousedown', e=>{
+  /* マウス（デスクトップ） */
+  island.addEventListener('mousedown',e=>{
     dragging=true;
     startX=e.clientX;
     baseIdx=TABS.indexOf(_tab);
     lastHapticIdx=baseIdx;
+    lastX=startX; lastT=performance.now(); lastVx=0;
     pill.style.transition='none';
+    island.classList.add('pressed');
     e.preventDefault();
   });
-  window.addEventListener('mousemove', e=>{
-    if(!dragging)return;
-    updateDrag(e.clientX);
-  });
-  window.addEventListener('mouseup', e=>{
-    if(!dragging)return;
-    dragging=false;
-    const dx=e.clientX-startX;
-    const progress=dx/TAB_W;
-    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
-    const nearest=Math.round(targetIdx);
-    const newIdx= Math.abs(targetIdx-baseIdx)>=0.35 ? nearest : baseIdx;
-    if(newIdx!==baseIdx) switchTab(TABS[newIdx], true);
-    else snapPill(baseIdx);
-  });
+  window.addEventListener('mousemove',e=>{ if(!dragging)return; updateDrag(e.clientX,performance.now()); });
+  window.addEventListener('mouseup',e=>{ onEnd(e.clientX); });
 }
 
 function renderGlobalToggles(){
@@ -960,7 +1083,7 @@ function renderCal(){
   const bd=document.getElementById('banners');
   if(bd){if(bmap.size){bd.style.display='inline-flex';bd.innerHTML=Array.from(bmap.values()).map(b=>`<span class="${b.cls}">${b.label}</span>`).join('');}else bd.style.display='none';}
   const wlblEl=document.getElementById('wlbl');
-  if(wlblEl)wlblEl.textContent=mon.toLocaleDateString('ja-JP',{month:'short',day:'numeric'})+'〜'+end.toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
+  if(wlblEl)wlblEl.textContent=mon.toLocaleDateString('ja-JP',{month:'short',day:'numeric'})+'\n〜\n'+end.toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
   renderWeekDayToggles(wk);
 
   /* grid */
@@ -1171,8 +1294,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     /* week nav */
 
-  document.getElementById('btn-prev').addEventListener('click',()=>{weekOffset--;renderCal();});
-  document.getElementById('btn-next').addEventListener('click',()=>{weekOffset++;renderCal();});
 
   /* assign add button */
   document.getElementById('btn-add-assign').addEventListener('click',openAddAssign);
