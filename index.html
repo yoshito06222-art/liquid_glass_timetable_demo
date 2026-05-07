@@ -107,103 +107,160 @@ body{
 .c6{background:rgba(232,121,249,.18);border-left:3px solid #e879f9}
 .c7{background:rgba(56,189,248,.18);border-left:3px solid #38bdf8}
 
-/* ══════════════════════════════════════
-   LIQUID GLASS BARS  ─  オーバーレイ
-══════════════════════════════════════ */
-.lg-bar{
-  position:absolute;left:0;right:0;
-  z-index:50;
+/* ── コントロールチップ（右上フロート） ── */
+.ctrl-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;
+  color:var(--acc);
   background:var(--lg-bg);
   backdrop-filter:var(--lg-blur);
   -webkit-backdrop-filter:var(--lg-blur);
-  border-color:var(--lg-brd);
-  border-style:solid;
-  border-width:0;
+  border:1px solid var(--lg-brd);
+  box-shadow:inset 0 1px 0 var(--lg-top-shine),0 2px 8px rgba(0,0,0,0.12);
+  cursor:pointer;transition:opacity .15s;white-space:nowrap;
 }
-/* 上バー（ヘッダー + コントロール） */
-.lg-top{
-  top:0;
-  border-bottom-width:1px;
-  /* 内側に上から光るハイライト */
-  box-shadow:inset 0 1px 0 var(--lg-top-shine), var(--lg-shadow-down);
+.ctrl-chip:active{opacity:.6}
+.dtgl{
+  font-size:10px;padding:3px 8px;border-radius:20px;
+  border:1px solid rgba(var(--acc-rgb),0.20);cursor:pointer;
+  font-weight:600;white-space:nowrap;
+  background:var(--lg-bg);
+  backdrop-filter:var(--lg-blur);-webkit-backdrop-filter:var(--lg-blur);
 }
-/* 下バー（タブバー） */
-.lg-bottom{
-  bottom:0;
-  border-top-width:1px;
-  box-shadow:inset 0 1px 0 var(--lg-top-shine), var(--lg-shadow-up);
-  padding-bottom:env(safe-area-inset-bottom);
-}
-
-/* ── Header row ── */
-.hdr-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 16px 6px;
-}
-.hdr-title{font-size:17px;font-weight:700;color:var(--acc)}
-.hdr-btn{
-  background:rgba(var(--acc-rgb),0.10);
-  border:1px solid rgba(var(--acc-rgb),0.18);
-  color:var(--acc);
-  height:30px;padding:0 12px;border-radius:15px;
-  font-size:12px;font-weight:600;cursor:pointer;
-  transition:opacity .15s;
-}
-.hdr-btn:active{opacity:.65}
-
-/* ── Control row: banners + toggles + week nav ── */
-.ctrl-row{
-  display:flex;align-items:center;flex-wrap:wrap;gap:5px;
-  padding:0 10px 8px;
-  border-top:1px solid var(--lg-sep);
-}
-.banners{display:inline-flex;flex-wrap:wrap;gap:4px;flex-shrink:1;min-width:0}
+.dtgl.on{background:var(--acc);color:#fff;border-color:transparent}
+.dtgl.off{color:var(--mut)}
 .chip{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap}
 .chip-q{background:rgba(var(--acc-rgb),.18);color:var(--acc)}
 .chip-s{background:rgba(var(--acc-rgb),.12);color:var(--acc)}
 .chip-h{background:rgba(var(--acc2-rgb),.2);color:var(--acc2)}
 
-.ctrl-right{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
-.dtgl{
-  font-size:10px;padding:2px 8px;border-radius:20px;
-  border:1px solid rgba(var(--acc-rgb),0.20);cursor:pointer;
-  font-weight:600;white-space:nowrap;
+/* ══════════════════════════════════════
+   FLOATING ISLAND TAB BAR
+   ─ アイランド本体は position:absolute
+     wrapper (.lg-bottom) は safe-area 確保用のスペーサー
+══════════════════════════════════════ */
+
+/* wrapper: 高さ確保・背景なし */
+.lg-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  z-index:50;
+  background:none;
+  border:none;
+  /* safe-area 下部を padding で確保 */
+  padding-bottom:env(safe-area-inset-bottom);
+  /* アイランドの実高 + 下マージン分の高さ */
+  height:calc(62px + env(safe-area-inset-bottom));
+  pointer-events:none; /* wrapper 自体はクリックを通過 */
 }
-.dtgl.on{background:var(--acc);color:#fff;border-color:transparent}
-.dtgl.off{background:rgba(var(--acc-rgb),0.08);color:var(--mut)}
-.week-arr{
-  background:none;border:none;
-  color:var(--acc);font-size:20px;font-weight:300;
-  cursor:pointer;padding:2px 3px;line-height:1;border-radius:6px;
-  transition:opacity .15s;
-}
-.week-arr:active{opacity:.5}
-.week-lbl{font-size:11px;color:var(--mut);font-weight:500;white-space:nowrap;min-width:80px;text-align:center}
 
 /* ══════════════════════════════════════
-   iOS LIQUID GLASS TAB BAR
+   FLOATING ISLAND TAB BAR  v229
 ══════════════════════════════════════ */
-.tab-bar{display:flex;align-items:stretch}
+
+/* wrapper */
+.lg-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  z-index:50;background:none;border:none;
+  padding-bottom:env(safe-area-inset-bottom);
+  height:calc(68px + env(safe-area-inset-bottom));
+  pointer-events:none;
+}
+
+/* アイランド本体 */
+.tab-island{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  pointer-events:auto;
+  display:flex;align-items:center;
+  padding:0 8px;
+  height:54px;
+  border-radius:27px;
+  min-width:220px;
+  /* 強力ブラー＋高彩度で厚みのあるガラス */
+  background:var(--lg-bg);
+  backdrop-filter:blur(40px) saturate(200%);
+  -webkit-backdrop-filter:blur(40px) saturate(200%);
+  /* 0.5px極細ベゼル */
+  border:0.5px solid var(--lg-brd);
+  /* ソフトなマルチレイヤーシャドウ */
+  box-shadow:
+    inset 0 0.5px 0 var(--lg-top-shine),
+    inset 0 -0.5px 0 rgba(0,0,0,0.06),
+    0 8px 48px rgba(0,0,0,0.12),
+    0 3px 14px rgba(0,0,0,0.07),
+    0 1px 2px rgba(0,0,0,0.05);
+  transition:width .40s cubic-bezier(.34,1.26,.64,1);
+  overflow:visible;
+  white-space:nowrap;
+}
+
+/* 液体ピル（アクティブインジケーター・JSで動かす） */
+.tab-pill{
+  position:absolute;
+  top:5px;
+  height:44px;
+  border-radius:22px;
+  /* すりガラス：彩度抑えた半透明 */
+  background:rgba(var(--acc-rgb),0.09);
+  backdrop-filter:blur(16px) saturate(130%);
+  -webkit-backdrop-filter:blur(16px) saturate(130%);
+  border:0.5px solid rgba(var(--acc-rgb),0.15);
+  box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.28);
+  /* left/width を同時に動かして液体モーフ */
+  transition:
+    left  .44s cubic-bezier(.34,1.18,.64,1),
+    width .44s cubic-bezier(.34,1.18,.64,1);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* タブボタン */
 .tab-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;padding:9px 4px 7px;
+  flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;
+  width:74px;height:50px;
+  padding:6px 0 4px;
   cursor:pointer;border:none;background:none;
-  color:var(--lg-txt);font-size:10px;font-weight:500;font-family:inherit;
-  transition:color .15s;-webkit-user-select:none;user-select:none;
-  position:relative;
+  color:var(--lg-txt);
+  font-size:9px;
+  font-weight:500;font-family:inherit;
+  -webkit-user-select:none;user-select:none;
+  position:relative;z-index:1;
+  border-radius:22px;
+  transition:color .22s cubic-bezier(.34,1.4,.64,1);
+  pointer-events:auto;
 }
 .tab-item.on{color:var(--acc)}
-.tab-icon{font-size:22px;line-height:1;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
-.tab-item.on .tab-icon{transform:scale(1.06)}
-.tab-item:active .tab-icon{transform:scale(.88)}
-/* 上端のアクティブピップ */
-.tab-pip{
-  position:absolute;top:0;left:50%;transform:translateX(-50%) scaleX(0);
-  width:20px;height:3px;border-radius:0 0 3px 3px;
-  background:var(--acc);
-  opacity:0;transition:opacity .15s,transform .22s cubic-bezier(.34,1.56,.64,1);
+
+.tab-icon{
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:transform .30s cubic-bezier(.34,1.56,.64,1);
+  position:relative;z-index:1;
 }
-.tab-item.on .tab-pip{opacity:1;transform:translateX(-50%) scaleX(1)}
+.tab-item.on .tab-icon{transform:scale(1.12) translateY(-1px)}
+.tab-item:active .tab-icon{transform:scale(.80)}
+
+.tab-icon svg{
+  width:20px;height:20px;
+  stroke:currentColor;fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke-width .22s;
+}
+.tab-item.on .tab-icon svg{stroke-width:2.3}
+
+.tab-label{
+  font-size:9px;font-weight:500;
+  position:relative;z-index:1;
+  transition:font-weight .22s,opacity .22s;
+  opacity:.60;line-height:1;letter-spacing:.01em;
+}
+.tab-item.on .tab-label{font-weight:700;opacity:1}
 
 /* ══════════════════════════════════════
    ASSIGN / SETTINGS VIEWS  ─  通常レイアウト
@@ -341,21 +398,20 @@ body{
   <div class="cal-bg" id="cal-bg">
     <div class="cal" id="cal-grid"></div>
   </div>
-  <!-- Liquid Glass 上バー（オーバーレイ） -->
-  <div class="lg-bar lg-top" id="lg-top">
-    <div class="hdr-row">
-      <span class="hdr-title">Timetable</span>
-      <button class="hdr-btn" id="btn-add-assign">+ 課題</button>
+  <!-- バナー: クォーター・学期チップ（左上フロート） -->
+  <div id="banners" style="display:none;position:absolute;top:8px;left:10px;z-index:40;display:none;flex-wrap:wrap;gap:4px;pointer-events:none"></div>
+  <!-- 週ナビ + 課題追加（右上コーナー、常時表示） -->
+  <div style="position:absolute;top:8px;right:10px;z-index:40;display:flex;align-items:center;gap:5px">
+    <button class="ctrl-chip" id="btn-add-assign" title="課題を追加">
+      <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      課題
+    </button>
+    <div class="ctrl-chip" style="display:flex;align-items:center;gap:2px;padding:4px 6px">
+      <button id="btn-prev" style="background:none;border:none;color:var(--acc);font-size:18px;font-weight:300;cursor:pointer;padding:0 2px;line-height:1">‹</button>
+      <span id="wlbl" style="font-size:10px;color:var(--mut);font-weight:500;white-space:nowrap;min-width:72px;text-align:center"></span>
+      <button id="btn-next" style="background:none;border:none;color:var(--acc);font-size:18px;font-weight:300;cursor:pointer;padding:0 2px;line-height:1">›</button>
     </div>
-    <div class="ctrl-row">
-      <div class="banners" id="banners" style="display:none"></div>
-      <div class="ctrl-right">
-        <div id="day-toggles" style="display:flex;gap:4px"></div>
-        <button class="week-arr" id="btn-prev">‹</button>
-        <span class="week-lbl" id="wlbl"></span>
-        <button class="week-arr" id="btn-next">›</button>
-      </div>
-    </div>
+    <div id="day-toggles" style="display:flex;gap:3px"></div>
   </div>
 </div>
 
@@ -409,25 +465,33 @@ body{
 </div>
 
 <!-- ══════════════════════════════════════
-     Liquid Glass TAB BAR（全ビュー共通）
+     FLOATING ISLAND TAB BAR（全ビュー共通）
 ══════════════════════════════════════ -->
-<div class="lg-bar lg-bottom" id="lg-bottom">
-  <div class="tab-bar">
+<div class="lg-bottom" id="lg-bottom">
+  <div class="tab-island" id="tab-island">
+    <div class="tab-pill" id="tab-pill"></div>
+
     <button class="tab-item on" id="tab-cal" data-tab="cal">
-      <div class="tab-pip"></div>
-      <div class="tab-icon">📅</div>
-      <span>カレンダー</span>
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="16" y1="4" x2="16" y2="2"/><rect x="7" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/><rect x="11" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/></svg>
+      </span>
+      <span class="tab-label">カレンダー</span>
     </button>
+
     <button class="tab-item" id="tab-assign" data-tab="assign">
-      <div class="tab-pip"></div>
-      <div class="tab-icon">📝</div>
-      <span>課題</span>
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      </span>
+      <span class="tab-label">課題</span>
     </button>
+
     <button class="tab-item" id="tab-settings" data-tab="settings">
-      <div class="tab-pip"></div>
-      <div class="tab-icon">⚙️</div>
-      <span>設定</span>
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
+      <span class="tab-label">設定</span>
     </button>
+
   </div>
 </div>
 
@@ -667,33 +731,203 @@ function renderThemeGrid(){
     el.addEventListener('click',()=>applyTheme(el.dataset.theme)));
 }
 
-/* ══════════ LAYOUT: バー高さを計測してグリッドの padding を設定 ══════════ */
+/* ══════════ LAYOUT ══════════ */
+const TABS=['cal','assign','settings'];
+const TAB_W=74;   // 各タブボタンの幅 px
+const PAD=8;      // アイランド左パディング px
+
 function applyBarPadding(){
-  const top=document.getElementById('lg-top');
   const bot=document.getElementById('lg-bottom');
-  const topH=top.offsetHeight;
   const botH=bot.offsetHeight;
-  // カレンダーのグリッド領域
-  document.getElementById('cal-bg').style.padding=topH+'px 8px '+botH+'px';
-  // 課題・設定ビューのタブスペーサー
+  document.getElementById('cal-bg').style.padding='4px 8px '+botH+'px';
   ['assign-tab-spacer','settings-tab-spacer'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.height=botH+'px';
   });
-  // 課題・設定ビューの上部は solid-hdr が自然に占める
+  sizeIsland();
+}
+
+function sizeIsland(){
+  const island=document.getElementById('tab-island');
+  if(!island)return;
+  island.style.width=(TABS.length*TAB_W+PAD*2)+'px';
+  setPillInstant(TABS.indexOf(_tab));
+}
+
+/* ピルをアニメなしで即セット */
+function setPillInstant(idx){
+  const pill=document.getElementById('tab-pill');
+  if(!pill)return;
+  pill.style.transition='none';
+  pill.style.left=(PAD+idx*TAB_W)+'px';
+  pill.style.width=TAB_W+'px';
+  pill.style.borderRadius='22px';
+  requestAnimationFrame(()=>{ pill.style.transition=''; });
+}
+
+/* spring snap アニメ */
+function snapPill(idx){
+  const pill=document.getElementById('tab-pill');
+  if(!pill)return;
+  pill.style.transition=
+    'left .40s cubic-bezier(.34,1.22,.64,1),' +
+    'width .40s cubic-bezier(.34,1.22,.64,1),' +
+    'border-radius .40s ease';
+  pill.style.left=(PAD+idx*TAB_W)+'px';
+  pill.style.width=TAB_W+'px';
+  pill.style.borderRadius='22px';
+}
+
+/* ハプティクス */
+function haptic(){
+  if(navigator.vibrate)navigator.vibrate(5);
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const g=ac.createGain();g.gain.setValueAtTime(0.0008,ac.currentTime);
+    const o=ac.createOscillator();o.frequency.value=900;
+    o.connect(g);g.connect(ac.destination);
+    o.start();o.stop(ac.currentTime+0.010);
+  }catch(e){}
 }
 
 /* ══════════ TAB ══════════ */
 let _tab='cal';
-function switchTab(t){
-  _tab=t;
-  document.getElementById('vcal').style.display=t==='cal'?'flex':'none';
-  document.getElementById('vassign').style.display=t==='assign'?'flex':'none';
+function switchTab(t, skipHaptic){
+  if(!skipHaptic)haptic();
+  const prev=_tab; _tab=t;
+  document.getElementById('vcal').style.display     =t==='cal'     ?'flex':'none';
+  document.getElementById('vassign').style.display  =t==='assign'  ?'flex':'none';
   document.getElementById('vsettings').style.display=t==='settings'?'flex':'none';
   document.querySelectorAll('.tab-item').forEach(btn=>
     btn.className='tab-item'+(btn.dataset.tab===t?' on':''));
+  snapPill(TABS.indexOf(t));
   if(t==='assign')renderAssigns();
   if(t==='settings'){renderSettings();renderThemeGrid();renderGlobalToggles();}
   applyBarPadding();
+}
+
+/* ══════════ INTERACTIVE PILL DRAG ══════════
+   指の動きに 1:1 でピルを追従させる。
+   - ドラッグ中: ピルの left/width をリアルタイムに更新
+   - 粘性感: 隣タブへ近づくにつれピルが伸び、到達でハプティクス
+   - 離す: threshold 超過→スナップ遷移、未満→元に戻る
+════════════════════════════════════════════ */
+function initPillDrag(){
+  const island=document.getElementById('tab-island');
+  const pill=document.getElementById('tab-pill');
+  if(!island||!pill)return;
+
+  let dragging=false;
+  let startX=0;
+  let baseIdx=0;        // ドラッグ開始時のタブindex
+  let lastHapticIdx=-1; // ハプティクスを打ったindex
+
+  /* ── 共通：ドラッグ中のピル位置計算 ── */
+  function updateDrag(curX){
+    const dx=curX-startX;
+    const progress=dx/TAB_W;          // -1 〜 +1 が「1タブ分」
+    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
+
+    // 整数部 / 小数部に分解して「引き伸ばし」を計算
+    const lo=Math.floor(targetIdx);
+    const hi=Math.min(lo+1, TABS.length-1);
+    const frac=targetIdx-lo;           // 0.0〜1.0
+
+    // ピルの中心が指に追従する left・width
+    const baseLeft = PAD + lo * TAB_W;
+    const stretch = TAB_W + frac * TAB_W * 0.55; // 最大55%伸び
+
+    // 進行方向によって left を調整（左に伸びる / 右に伸びる）
+    const left = dx>0
+      ? PAD + lo*TAB_W + frac*TAB_W*(1-0.55)  // 右へ：右端を引き伸ばす
+      : PAD + lo*TAB_W;                         // 左へ：左端を引き伸ばす
+
+    // 境界丸み：引き伸び側を直角に近づけてモルフ感
+    const r0 = dx>0 ? 22 : Math.max(8, 22*(1-frac));
+    const r1 = dx>0 ? Math.max(8, 22*(1-frac)) : 22;
+    // border-radius: top-left top-right bottom-right bottom-left
+    pill.style.borderRadius=`${r0}px ${r1}px ${r1}px ${r0}px`;
+
+    pill.style.transition='none';
+    pill.style.left=left+'px';
+    pill.style.width=stretch+'px';
+
+    // 隣タブに到達したらハプティクス
+    const nearest=Math.round(targetIdx);
+    if(nearest!==lastHapticIdx && nearest!==baseIdx){
+      lastHapticIdx=nearest;
+      haptic();
+    }
+  }
+
+  /* ── touch ── */
+  island.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1)return;
+    dragging=true;
+    startX=e.touches[0].clientX;
+    baseIdx=TABS.indexOf(_tab);
+    lastHapticIdx=baseIdx;
+    pill.style.transition='none';
+  },{passive:true});
+
+  island.addEventListener('touchmove', e=>{
+    if(!dragging||e.touches.length!==1)return;
+    updateDrag(e.touches[0].clientX);
+  },{passive:true});
+
+  island.addEventListener('touchend', e=>{
+    if(!dragging)return;
+    dragging=false;
+    const dx=e.changedTouches[0].clientX-startX;
+    const progress=dx/TAB_W;
+    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
+    const nearest=Math.round(targetIdx);
+    // 閾値 35%：35% 以上移動していれば次のタブへ
+    const threshold=0.35;
+    const newIdx= Math.abs(targetIdx-baseIdx)>=threshold ? nearest : baseIdx;
+    if(newIdx!==baseIdx){
+      switchTab(TABS[newIdx], true);  // ハプティクスは追従中に打ち済み
+    } else {
+      snapPill(baseIdx);  // 元に戻る
+    }
+  },{passive:true});
+
+  island.addEventListener('touchcancel', ()=>{
+    if(!dragging)return;
+    dragging=false;
+    snapPill(baseIdx);
+  },{passive:true});
+
+  /* ── mouse（デスクトップ確認用） ── */
+  island.addEventListener('mousedown', e=>{
+    dragging=true;
+    startX=e.clientX;
+    baseIdx=TABS.indexOf(_tab);
+    lastHapticIdx=baseIdx;
+    pill.style.transition='none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging)return;
+    updateDrag(e.clientX);
+  });
+  window.addEventListener('mouseup', e=>{
+    if(!dragging)return;
+    dragging=false;
+    const dx=e.clientX-startX;
+    const progress=dx/TAB_W;
+    const targetIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
+    const nearest=Math.round(targetIdx);
+    const newIdx= Math.abs(targetIdx-baseIdx)>=0.35 ? nearest : baseIdx;
+    if(newIdx!==baseIdx) switchTab(TABS[newIdx], true);
+    else snapPill(baseIdx);
+  });
+}
+
+function renderGlobalToggles(){
+  const sb=document.getElementById('toggle-sat-global'),su=document.getElementById('toggle-sun-global');
+  if(!sb||!su)return;
+  sb.textContent=D.showSat?'ON':'OFF';sb.className='toggle-btn '+(D.showSat?'on':'off');
+  su.textContent=D.showSun?'ON':'OFF';su.className='toggle-btn '+(D.showSun?'on':'off');
 }
 
 /* ══════════ DAY TOGGLES ══════════ */
@@ -707,12 +941,6 @@ function renderWeekDayToggles(wk){
   el.appendChild(mkBtn('日:',sun,()=>{if(!D.weekOverrides[wk])D.weekOverrides[wk]={};D.weekOverrides[wk].sun=!sun;dbSave();renderCal();}));
   if(o.sat!==undefined||o.sun!==undefined){const r=document.createElement('button');r.className='dtgl off';r.textContent='↺';r.addEventListener('click',()=>{delete D.weekOverrides[wk];dbSave();renderCal();});el.appendChild(r);}
 }
-function renderGlobalToggles(){
-  const sb=document.getElementById('toggle-sat-global'),su=document.getElementById('toggle-sun-global');
-  if(!sb||!su)return;
-  sb.textContent=D.showSat?'ON':'OFF';sb.className='toggle-btn '+(D.showSat?'on':'off');
-  su.textContent=D.showSun?'ON':'OFF';su.className='toggle-btn '+(D.showSun?'on':'off');
-}
 
 /* ══════════ RENDER CAL ══════════ */
 function renderCal(){
@@ -722,10 +950,6 @@ function renderCal(){
   const dates=vis.map(i=>allDates[i]);
   const mon=getMonday(weekOffset);
   const end=dparse(dates[dates.length-1]);
-  document.getElementById('wlbl').textContent=
-    mon.toLocaleDateString('ja-JP',{month:'short',day:'numeric'})+'〜'+
-    end.toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
-  renderWeekDayToggles(wk);
 
   /* banners */
   const bmap=new Map();
@@ -734,8 +958,10 @@ function renderCal(){
     D.periods.filter(p=>p.start<=ds&&ds<=p.end).forEach(p=>{if(!bmap.has('p'+p.id))bmap.set('p'+p.id,{label:p.name,cls:p.type==='holiday'?'chip chip-h':'chip chip-s'});});
   });
   const bd=document.getElementById('banners');
-  if(bmap.size){bd.style.display='inline-flex';bd.innerHTML=Array.from(bmap.values()).map(b=>`<span class="${b.cls}">${b.label}</span>`).join('');}
-  else bd.style.display='none';
+  if(bd){if(bmap.size){bd.style.display='inline-flex';bd.innerHTML=Array.from(bmap.values()).map(b=>`<span class="${b.cls}">${b.label}</span>`).join('');}else bd.style.display='none';}
+  const wlblEl=document.getElementById('wlbl');
+  if(wlblEl)wlblEl.textContent=mon.toLocaleDateString('ja-JP',{month:'short',day:'numeric'})+'〜'+end.toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
+  renderWeekDayToggles(wk);
 
   /* grid */
   const grid=document.getElementById('cal-grid');
@@ -942,15 +1168,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.tab-item').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 
   /* week nav */
+
+    /* week nav */
+
   document.getElementById('btn-prev').addEventListener('click',()=>{weekOffset--;renderCal();});
   document.getElementById('btn-next').addEventListener('click',()=>{weekOffset++;renderCal();});
 
-  /* swipe on calendar */
-  let tx=0,ty=0;
-  document.getElementById('vcal').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
-  document.getElementById('vcal').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){if(dx<0){weekOffset++;renderCal();}else{weekOffset--;renderCal();}}},{passive:true});
-
-  /* assign buttons */
+  /* assign add button */
   document.getElementById('btn-add-assign').addEventListener('click',openAddAssign);
   document.getElementById('btn-add-assign2').addEventListener('click',openAddAssign);
 
@@ -1012,12 +1236,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* resize */
   window.addEventListener('resize',()=>{applyBarPadding();renderCal();});
-  if(window.ResizeObserver){let t;const ro=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>{applyBarPadding();renderCal();},50);});ro.observe(document.getElementById('cal-bg'));ro.observe(document.getElementById('lg-top'));ro.observe(document.getElementById('lg-bottom'));}
+  if(window.ResizeObserver){let t;const ro=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>{applyBarPadding();renderCal();},50);});ro.observe(document.getElementById('cal-bg'));ro.observe(document.getElementById('lg-bottom'));ro.observe(document.getElementById('tab-island'));}
 
   /* init */
   dbLoad();
   applyTheme(D.theme||'minimal');
   renderGlobalToggles();
+  initPillDrag();
   switchTab('cal');
   requestAnimationFrame(()=>requestAnimationFrame(()=>{applyBarPadding();renderCal();}));
 });
