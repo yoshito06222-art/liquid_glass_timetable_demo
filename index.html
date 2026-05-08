@@ -184,30 +184,7 @@ body{
   transform:translateX(-50%) scale(1.04);
 }
 
-/* 液体ピル */
-.tab-pill{
-  position:absolute;
-  /* top/height はJSで動的設定 */
-  border-radius:22px;
-  /* すりガラス */
-  background:rgba(var(--acc-rgb),0.10);
-  backdrop-filter:blur(20px) saturate(140%);
-  -webkit-backdrop-filter:blur(20px) saturate(140%);
-  border:0.5px solid rgba(var(--acc-rgb),0.18);
-  box-shadow:
-    inset 0 0.5px 0 rgba(255,255,255,0.32),
-    inset 0 -0.5px 0 rgba(0,0,0,0.04);
-  pointer-events:none;
-  z-index:0;
-  will-change:left,width,top,height,border-radius,filter;
-}
-/* ドラッグ中：レンズ歪み＋虹色分光フィルター適用 */
-.tab-pill.dragging{
-  filter:url(#pill-lens);
-}
-.tab-pill.dragging.prism{
-  filter:url(#pill-lens) url(#pill-prism);
-}
+/* 液体ピル: WebGL描画 */
 
 /* タブボタン */
 .tab-item{
@@ -225,32 +202,6 @@ body{
   border-radius:24px;
   pointer-events:auto;
   /* colorはJSでclip-pathを使って部分的に切り替えるためtransitionなし */
-}
-
-/* 非アクティブ色・アクティブ色それぞれを重ねてclipで切り替え */
-.tab-item .tab-label-active{
-  position:absolute;
-  bottom:5px;left:0;right:0;
-  text-align:center;
-  font-size:9px;font-weight:700;
-  color:var(--acc);
-  clip-path:inset(0 100% 0 0); /* 初期：非表示 */
-  transition:none;
-  pointer-events:none;
-}
-.tab-item .tab-icon-active{
-  position:absolute;
-  top:7px;left:50%;transform:translateX(-50%);
-  width:22px;height:22px;
-  display:flex;align-items:center;justify-content:center;
-  clip-path:inset(0 100% 0 0);
-  transition:none;
-  pointer-events:none;
-}
-.tab-item .tab-icon-active svg{
-  width:20px;height:20px;
-  stroke:var(--acc);fill:none;
-  stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;
 }
 
 .tab-icon{
@@ -402,32 +353,21 @@ body{
 .crow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .csw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent}
 .csw.on{border-color:var(--txt)}
+
+/* pill-overlay アクティブ色レイヤー */
+.tab-overlay-item{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;
+  width:80px;height:52px;
+  padding:7px 0 5px;
+  pointer-events:none;
+}
+.toi-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toi-label{font-size:9px;font-weight:700;color:var(--acc);line-height:1;letter-spacing:.01em}
 </style>
 </head>
 <body>
-<!-- SVG filters for pill lens/prism effects -->
-<svg width="0" height="0" style="position:absolute;pointer-events:none">
-  <defs>
-    <!-- レンズ歪みフィルター -->
-    <filter id="pill-lens" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.025" numOctaves="2" seed="8" result="noise"/>
-      <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
-      <feGaussianBlur in="displaced" stdDeviation="0" result="blurred"/>
-      <feComposite in="blurred" in2="SourceGraphic" operator="over"/>
-    </filter>
-    <!-- 虹色分光フィルター（色収差） -->
-    <filter id="pill-prism" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <!-- R・G・B チャンネルをわずかにずらして色収差を再現 -->
-      <feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
-      <feOffset in="r" dx="1.2" dy="0" result="rOff"/>
-      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
-      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
-      <feOffset in="b" dx="-1.2" dy="0" result="bOff"/>
-      <feBlend in="rOff" in2="g" mode="screen" result="rg"/>
-      <feBlend in="rg" in2="bOff" mode="screen"/>
-    </filter>
-  </defs>
-</svg>
 
 <!-- ══════════════════════════════════════
      CALENDAR VIEW  (全画面)
@@ -503,15 +443,14 @@ body{
 ══════════════════════════════════════ -->
 <div class="lg-bottom" id="lg-bottom">
   <div class="tab-island" id="tab-island">
-    <div class="tab-pill" id="tab-pill"></div>
+    <!-- WebGL pill canvas（tab-island内に配置して座標系を一致させる） -->
+    <canvas id="pill-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible;"></canvas>
 
     <button class="tab-item on" id="tab-cal" data-tab="cal">
       <span class="tab-icon">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="16" y1="4" x2="16" y2="2"/><rect x="7" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/><rect x="11" y="13" width="3" height="3" rx="0.5" style="fill:currentColor;stroke:none"/></svg>
       </span>
       <span class="tab-label">カレンダー</span>
-      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="16" y1="4" x2="16" y2="2"/><rect x="7" y="13" width="3" height="3" rx="0.5" style="fill:var(--acc);stroke:none"/><rect x="11" y="13" width="3" height="3" rx="0.5" style="fill:var(--acc);stroke:none"/></svg></span>
-      <span class="tab-label-active">カレンダー</span>
     </button>
 
     <button class="tab-item" id="tab-assign" data-tab="assign">
@@ -519,8 +458,6 @@ body{
         <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
       </span>
       <span class="tab-label">課題</span>
-      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
-      <span class="tab-label-active">課題</span>
     </button>
 
     <button class="tab-item" id="tab-settings" data-tab="settings">
@@ -528,8 +465,6 @@ body{
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </span>
       <span class="tab-label">設定</span>
-      <span class="tab-icon-active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-      <span class="tab-label-active">設定</span>
     </button>
 
   </div>
@@ -773,14 +708,23 @@ function renderThemeGrid(){
 
 /* ══════════ LAYOUT ══════════ */
 const TABS=['cal','assign','settings'];
-const TAB_W=80;    // タブボタン幅
-const PAD=6;       // アイランド左右パディング
-const PILL_MARGIN=3; // ピルとアイランド端の距離（元の半分）
+const TAB_W=80;
+const PAD=6;
+const PILL_MARGIN=6;
+const ISLAND_H=56;
+const PILL_BASE_H=ISLAND_H-PILL_MARGIN*2;
 
 function applyBarPadding(){
   const bot=document.getElementById('lg-bottom');
   const botH=bot.offsetHeight;
-  document.getElementById('cal-bg').style.padding='4px 8px '+botH+'px';
+
+  // 上部：コントロール群（cal-controls）の下端 + 余白
+  const ctrl=document.getElementById('cal-controls');
+  const topPad=ctrl?(ctrl.offsetTop+ctrl.offsetHeight+6):8;
+
+  // cal-bg のパディング：上=コントロール下端、下=タブバー高さ
+  document.getElementById('cal-bg').style.padding=topPad+'px 8px '+botH+'px';
+
   ['assign-tab-spacer','settings-tab-spacer'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.height=botH+'px';
   });
@@ -790,93 +734,34 @@ function applyBarPadding(){
 function sizeIsland(){
   const island=document.getElementById('tab-island');
   if(!island)return;
-  const w=TABS.length*TAB_W+PAD*2;
-  island.style.width=w+'px';
-  setPillInstant(TABS.indexOf(_tab));
+  island.style.width=(TABS.length*TAB_W+PAD*2)+'px';
+  pillGl.setInstant(TABS.indexOf(_tab));
 }
 
-/* ── ピル位置をアニメなしで即セット ── */
-function setPillInstant(idx){
-  const pill=document.getElementById('tab-pill');
-  if(!pill)return;
-  const islandH=56;
-  const pillH=islandH - PILL_MARGIN*2;  // 端までの距離を半分に（大きめ）
-  pill.style.transition='none';
-  pill.style.top=PILL_MARGIN+'px';
-  pill.style.height=pillH+'px';
-  pill.style.left=(PAD+idx*TAB_W)+'px';
-  pill.style.width=TAB_W+'px';
-  pill.style.borderRadius=(pillH/2)+'px';
-  updateClipPaths(PAD+idx*TAB_W, TAB_W);
-  requestAnimationFrame(()=>{ pill.style.transition=''; });
+/* pill-overlay の clip-path をピルの実座標に合わせて更新 */
+/* pill-overlay は tab-island と同じ座標系なのでズレなし */
+function updateClipPaths(pillLeft, pillWidth, pillTop, pillHeight){
+  const overlay=document.getElementById('pill-overlay');
+  if(!overlay)return;
+  const pH=pillHeight||PILL_BASE_H;
+  const pT=pillTop||PILL_MARGIN;
+  const r=pH/2; // カプセル形の半径
+
+  // ピル形状の SVG path（tab-island 座標系）
+  const x1=pillLeft, y1=pT, x2=pillLeft+pillWidth, y2=pT+pH;
+  const cr=Math.min(r,(x2-x1)/2);
+  const path=`M ${x1+cr},${y1} L ${x2-cr},${y1} `+
+    `Q ${x2},${y1} ${x2},${y1+cr} `+
+    `L ${x2},${y2-cr} `+
+    `Q ${x2},${y2} ${x2-cr},${y2} `+
+    `L ${x1+cr},${y2} `+
+    `Q ${x1},${y2} ${x1},${y2-cr} `+
+    `L ${x1},${y1+cr} `+
+    `Q ${x1},${y1} ${x1+cr},${y1} Z`;
+
+  overlay.style.clipPath='path("'+path+'")';
 }
 
-/* ── spring snap ── */
-function snapPill(idx){
-  const pill=document.getElementById('tab-pill');
-  if(!pill)return;
-  const islandH=56;
-  const pillH=islandH - PILL_MARGIN*2;
-  const targetLeft=PAD+idx*TAB_W;
-  pill.style.transition=[
-    'left .42s cubic-bezier(.34,1.22,.64,1)',
-    'width .42s cubic-bezier(.34,1.22,.64,1)',
-    'top .32s cubic-bezier(.34,1.22,.64,1)',
-    'height .32s cubic-bezier(.34,1.22,.64,1)',
-    'border-radius .32s ease',
-    'filter .32s ease'
-  ].join(',');
-  pill.style.top=PILL_MARGIN+'px';
-  pill.style.height=pillH+'px';
-  pill.style.left=targetLeft+'px';
-  pill.style.width=TAB_W+'px';
-  pill.style.borderRadius=(pillH/2)+'px';
-  pill.classList.remove('dragging','prism');
-  // clip-path をアニメと同期させてアイランドの scale 解除後に更新
-  setTimeout(()=>{ updateClipPaths(targetLeft, TAB_W); },20);
-  /* スナップ完了後に連続更新 */
-  const dur=440;
-  const start=performance.now();
-  const fromLeft=parseFloat(pill.style.left)||targetLeft;
-  function tick(now){
-    const t=Math.min((now-start)/dur,1);
-    // ease out cubic
-    const ease=1-Math.pow(1-t,3);
-    const cur=fromLeft+(targetLeft-fromLeft)*ease;
-    updateClipPaths(cur, TAB_W);
-    if(t<1)requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-
-/* ── clip-path でピルが重なった部分のタブ色を切り替え ── */
-function updateClipPaths(pillLeft, pillWidth){
-  const island=document.getElementById('tab-island');
-  if(!island)return;
-  const islandRect=island.getBoundingClientRect();
-  const items=island.querySelectorAll('.tab-item');
-  items.forEach((item,i)=>{
-    const itemLeft=PAD+i*TAB_W; // アイランド内相対座標
-    // ピルとアイテムの重なり範囲をアイテム内のローカル座標に変換
-    const overlapStart=Math.max(pillLeft, itemLeft)-itemLeft;
-    const overlapEnd=Math.min(pillLeft+pillWidth, itemLeft+TAB_W)-itemLeft;
-    const activeIcon=item.querySelector('.tab-icon-active');
-    const activeLabel=item.querySelector('.tab-label-active');
-    if(!activeIcon||!activeLabel)return;
-    if(overlapEnd<=overlapStart){
-      // 重なりなし
-      activeIcon.style.clipPath='inset(0 100% 0 0)';
-      activeLabel.style.clipPath='inset(0 100% 0 0)';
-    } else {
-      // 重なり部分だけ active 色を表示
-      const l=overlapStart/TAB_W*100;
-      const r=(1-(overlapEnd/TAB_W))*100;
-      const cp=`inset(0 ${r.toFixed(1)}% 0 ${l.toFixed(1)}%)`;
-      activeIcon.style.clipPath=cp;
-      activeLabel.style.clipPath=cp;
-    }
-  });
-}
 
 /* ハプティクス */
 function haptic(){
@@ -890,160 +775,306 @@ function haptic(){
   }catch(e){}
 }
 
+/* WebGL PILL RENDERER */
+const pillGl=(function(){
+  let canvas,gl,prog,_raf=0;
+  const state={
+    left:PAD,width:TAB_W,top:PILL_MARGIN,height:PILL_BASE_H,
+    targetLeft:PAD,targetWidth:TAB_W,targetTop:PILL_MARGIN,targetHeight:PILL_BASE_H,
+    vLeft:0,vWidth:0,vTop:0,vHeight:0,
+    lensStrength:0,prismStrength:0,
+    _pad:20,_dpr:1,
+  };
+
+  const VS='attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0,1);}';
+
+  const FS=[
+'precision highp float;',
+'uniform vec2 u_res;',
+'uniform vec4 u_pill;',   // x,y,w,h (canvas px, top-left)
+'uniform float u_radius;',
+'uniform float u_lens;',  // 0=歪みなし 1=最大歪み
+'uniform float u_prism;', // 0=分光なし 1=最大
+'uniform vec3 u_acc;',
+'uniform float u_time;',
+// SDF
+'float sdRR(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.0))+min(max(q.x,q.y),0.0)-r;}',
+// ノイズ
+'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+'float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}',
+'float fbm(vec2 p){float v=0.0,a=0.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.1;a*=0.5;}return v;}',
+// 虹色
+'vec3 rainbow(float t){return vec3(0.5+0.5*cos(6.283*(t)),0.5+0.5*cos(6.283*(t+0.333)),0.5+0.5*cos(6.283*(t+0.667)));}',
+'void main(){',
+'  vec2 p=vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);',
+'  vec2 pc=vec2(u_pill.x+u_pill.z*0.5, u_pill.y+u_pill.w*0.5);',
+'  vec2 ph=vec2(u_pill.z*0.5, u_pill.w*0.5);',
+'  vec2 lUV=(p-pc)/max(ph,vec2(1.0));', // -1〜1
+'  float dist=sdRR(p-pc, ph, u_radius);',
+'  float mask=1.0-smoothstep(-1.5,1.5,dist);',
+'  if(mask<0.001){gl_FragColor=vec4(0);return;}',
+// 境界からの距離（0=中心、1=縁）
+'  float edgeFactor=1.0-smoothstep(0.0,1.0,(-dist)/(min(ph.x,ph.y)));', // 縁ほど1
+// fresnel（縁6px以内）
+'  float fresnel=1.0-smoothstep(0.0,6.0,abs(dist));',
+// ノイズ歪み：境界部のみ・lens=0なら無効
+'  float lensAtEdge=u_lens*edgeFactor;',  // 中心はゼロ、縁ほど強い
+'  vec2 nUV=lUV*3.0+vec2(u_time*0.10,u_time*0.07);',
+'  float nx=fbm(nUV)*2.0-1.0;',
+'  float ny=fbm(nUV+vec2(3.7,1.3))*2.0-1.0;',
+// ベース：すりガラス（lens=0でも常に表示）
+'  vec3 col=u_acc;',
+'  float alpha=0.11+fresnel*0.09;',
+// 上縁シャイン（常時）
+'  float shine=smoothstep(0.0,0.35,-lUV.y)*smoothstep(-0.8,0.2,-abs(lUV.x));',
+'  col+=vec3(shine*0.50);alpha+=shine*0.16;',
+// 歪みハイライト（lens>0かつ境界部のみ）
+'  float rimG=pow(fresnel,1.5)*lensAtEdge*0.7;',
+'  col+=vec3(rimG);alpha+=rimG*0.35;',
+// 虹色分光（境界部・prism>0時のみ）
+'  float pT=atan(lUV.y,lUV.x)/6.283+0.5+u_time*0.05;',
+'  vec3 pCol=rainbow(pT);',
+'  float pMask=fresnel*u_prism*lensAtEdge;', // 境界部のみ
+'  col=mix(col,pCol,pMask*0.75);alpha+=pMask*0.18;',
+// 合成
+'  alpha=clamp(alpha,0.0,0.92)*mask;',
+'  float softEdge=smoothstep(0.0,1.5,dist+1.5);',
+'  alpha*=(1.0-softEdge*0.5);',
+'  gl_FragColor=vec4(col*alpha,alpha);',
+'}'
+  ].join('\n');
+
+
+  function mkSh(type,src){
+    const s=gl.createShader(type);
+    gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));
+    return s;
+  }
+
+  function init(){
+    canvas=document.getElementById('pill-canvas');
+    if(!canvas)return false;
+    gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true});
+    if(!gl)return false;
+    prog=gl.createProgram();
+    gl.attachShader(prog,mkSh(gl.VERTEX_SHADER,VS));
+    gl.attachShader(prog,mkSh(gl.FRAGMENT_SHADER,FS));
+    gl.linkProgram(prog);gl.useProgram(prog);
+    const buf=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(prog,'a_pos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+    return true;
+  }
+
+  function resize(){
+    if(!canvas||!gl)return;
+    const island=document.getElementById('tab-island');
+    if(!island)return;
+    const dpr=window.devicePixelRatio||1;
+    const pad=20; // はみ出し分
+    const iw=island.offsetWidth;
+    const ih=island.offsetHeight;
+    // canvas を island の外に pad px 張り出す（overflow:visible は親で設定済み）
+    canvas.style.position='absolute';
+    canvas.style.top=-pad+'px';
+    canvas.style.left=-pad+'px';
+    canvas.style.width=(iw+pad*2)+'px';
+    canvas.style.height=(ih+pad*2)+'px';
+    canvas.style.pointerEvents='none';
+    canvas.style.zIndex='0';
+    const cw=Math.round((iw+pad*2)*dpr);
+    const ch=Math.round((ih+pad*2)*dpr);
+    if(canvas.width!==cw||canvas.height!==ch){
+      canvas.width=cw;
+      canvas.height=ch;
+    }
+    gl.viewport(0,0,canvas.width,canvas.height);
+    state._pad=pad;state._dpr=dpr;state._iw=iw;state._ih=ih;
+  }
+
+  function getAcc(){
+    const v=getComputedStyle(document.documentElement).getPropertyValue('--acc-rgb').trim();
+    const p=v.split(',').map(Number);
+    return p.length===3?[p[0]/255,p[1]/255,p[2]/255]:[0.133,0.133,0.133];
+  }
+
+  let _t0=null;
+  function draw(ts){
+    if(!gl){_raf=0;return;}
+    if(!_t0)_t0=ts;
+    const t=(ts-_t0)/1000;
+    resize();
+    const pad=state._pad,dpr=state._dpr;
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    const acc=getAcc();
+    const pw=state.width*dpr,ph=state.height*dpr;
+    const px=(state.left+pad)*dpr,py=(state.top+pad)*dpr;
+    const setU=(n,type,...v)=>{const l=gl.getUniformLocation(prog,n);if(l!=null)gl[type](l,...v);};
+    setU('u_res','uniform2fv',[canvas.width,canvas.height]);
+    setU('u_pill','uniform4fv',[px,py,pw,ph]);
+    setU('u_radius','uniform1f',ph/2);
+    setU('u_lens','uniform1f',Math.min(state.lensStrength,1.0));
+    setU('u_prism','uniform1f',Math.min(state.prismStrength,1.0));
+    setU('u_acc','uniform3fv',acc);
+    setU('u_time','uniform1f',t);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    _raf=requestAnimationFrame(draw);
+  }
+
+  return {
+    init(){
+      if(!init())return;
+      resize();
+      window.addEventListener('resize',resize);
+      _raf=requestAnimationFrame(draw);
+    },
+    setInstant(idx){
+      state.left=PAD+idx*TAB_W;state.width=TAB_W;
+      state.top=PILL_MARGIN;state.height=PILL_BASE_H;
+      state.lensStrength=0;state.prismStrength=0;
+      state.vLeft=state.vWidth=state.vTop=state.vHeight=0;
+      updateClipPaths(state.left,state.width,state.top,state.height);
+    },
+    snapTo(idx){
+      state.targetLeft=PAD+idx*TAB_W;state.targetWidth=TAB_W;
+      state.targetTop=PILL_MARGIN;state.targetHeight=PILL_BASE_H;
+      if(!_raf)_raf=requestAnimationFrame(draw);
+      const k=280,d=28,m=1;
+      let last=performance.now();
+      function spring(now){
+        const dt=Math.min((now-last)/1000,0.05);last=now;
+        function step(c,t,v){const f=-k*(c-t)-d*v;const a=f/m;const nv=v+a*dt;return[c+nv*dt,nv];}
+        [state.left,state.vLeft]=step(state.left,state.targetLeft,state.vLeft);
+        [state.width,state.vWidth]=step(state.width,state.targetWidth,state.vWidth);
+        [state.top,state.vTop]=step(state.top,state.targetTop,state.vTop);
+        [state.height,state.vHeight]=step(state.height,state.targetHeight,state.vHeight);
+        state.lensStrength*=Math.pow(0.88,dt*60);
+        state.prismStrength*=Math.pow(0.85,dt*60);
+        updateClipPaths(state.left,state.width,state.top,state.height);
+        const ok=Math.abs(state.vLeft)<0.2&&Math.abs(state.left-state.targetLeft)<0.3&&
+                  Math.abs(state.vWidth)<0.2&&Math.abs(state.width-state.targetWidth)<0.3;
+        if(!ok)requestAnimationFrame(spring);
+      }
+      requestAnimationFrame(spring);
+    },
+    updateDrag(l,w,t,h,lens,prism){
+      state.left=l;state.width=w;state.top=t;state.height=h;
+      state.lensStrength=lens;state.prismStrength=prism;
+      updateClipPaths(l,w,t,h);
+    },
+  };
+})();
+
 /* ══════════ TAB ══════════ */
 let _tab='cal';
-function switchTab(t, skipHaptic){
+function switchTab(t,skipHaptic){
   if(!skipHaptic)haptic();
   _tab=t;
-  document.getElementById('vcal').style.display     =t==='cal'     ?'flex':'none';
-  document.getElementById('vassign').style.display  =t==='assign'  ?'flex':'none';
+  document.getElementById('vcal').style.display=t==='cal'?'flex':'none';
+  document.getElementById('vassign').style.display=t==='assign'?'flex':'none';
   document.getElementById('vsettings').style.display=t==='settings'?'flex':'none';
   document.querySelectorAll('.tab-item').forEach(btn=>
     btn.className='tab-item'+(btn.dataset.tab===t?' on':''));
-  snapPill(TABS.indexOf(t));
+  pillGl.snapTo(TABS.indexOf(t));
   if(t==='assign')renderAssigns();
   if(t==='settings'){renderSettings();renderThemeGrid();renderGlobalToggles();}
   applyBarPadding();
 }
 
-/* ══════════ PILL DRAG（1対1追従） ══════════ */
+/* ══════════ PILL DRAG ══════════ */
 function initPillDrag(){
   const island=document.getElementById('tab-island');
-  const pill=document.getElementById('tab-pill');
-  if(!island||!pill)return;
+  if(!island)return;
+  let dragging=false,startX=0,baseIdx=0,lastHapticIdx=-1;
+  let lastVx=0,lastT=0,lastX=0;
 
-  let dragging=false;
-  let startX=0;
-  let baseIdx=0;
-  let lastHapticIdx=-1;
-  let lastVx=0, lastT=0, lastX=0;
-  const islandH=56;
-  const pillBaseH=islandH-PILL_MARGIN*2;
-
-  function updateDrag(curX, timestamp){
+  function updateDrag(curX,ts){
     const dx=curX-startX;
-    const dt=timestamp-lastT||16;
+    const dt=Math.max(ts-lastT,4);
     const vx=(curX-lastX)/dt; // px/ms
-    lastVx=vx; lastT=timestamp; lastX=curX;
+    lastVx=vx;lastT=ts;lastX=curX;
 
-    // 何タブ分移動したか（小数）
-    const progress=dx/TAB_W;
-    // ピルの中心インデックス（実数）
-    const centerIdx=Math.max(0,Math.min(TABS.length-1, baseIdx-progress));
+    // ── 指の位置をアイランド内座標に変換 ──
+    const island=document.getElementById('tab-island');
+    const ir=island.getBoundingClientRect();
+    // 指のアイランド内X座標
+    const fingerX=curX - ir.left;
 
-    const lo=Math.floor(centerIdx);
-    const hi=Math.min(lo+1,TABS.length-1);
-    const frac=centerIdx-lo; // 0〜1
+    // ピル幅：速度で横に伸びる（小さく調整）
+    const absVx=Math.abs(vx);
+    const speedStr=Math.min(absVx*35, TAB_W*0.45); // 伸び量を抑える
+    const pillW=TAB_W+speedStr;
 
-    // ─ 伸び（加速度が大きいほど横に細長く）─
-    const speedStretch=Math.min(Math.abs(vx)*0.6, TAB_W*0.7);
-    // frac による隣タブへの引き伸ばし（最大60%）
-    const morphStretch=frac*TAB_W*0.60;
-    const totalStretch=morphStretch+speedStretch;
+    // ピルの left：指の位置がピルの中心になる（クランプ付き）
+    let left=fingerX - pillW/2;
+    left=Math.max(PAD, Math.min(PAD+TABS.length*TAB_W-pillW, left));
 
-    // ─ 膨らみ（ピルがアイランドからはみ出す）─
-    // 移動量に応じて上下に膨らむ
-    const bulge=Math.min(frac*(1-frac)*4*18, 18); // 最大18pxはみ出し
-    const pillH=pillBaseH+bulge*2;
+    // ピルの height：タブ間の中間地点付近で膨らむ
+    // 指がどのタブの境界に近いか
+    const centerIdx=(fingerX-PAD)/TAB_W; // 連続値
+    const frac=centerIdx - Math.floor(centerIdx);
+    const borderDist=Math.min(frac, 1-frac); // 0=境界, 0.5=中心
+    const bulgeFactor=Math.max(0, 1-borderDist*4); // 境界付近だけ膨らむ
+    const bulge=bulgeFactor*14; // 最大14px（小さめ）
+    const pillH=PILL_BASE_H+bulge*2;
     const pillTop=PILL_MARGIN-bulge;
 
-    // ─ left / width ─
-    let left, width;
-    if(dx>=0){
-      // 右方向
-      left=PAD+lo*TAB_W;
-      width=TAB_W+totalStretch;
-    } else {
-      // 左方向
-      width=TAB_W+totalStretch;
-      left=PAD+lo*TAB_W+frac*TAB_W-totalStretch+TAB_W*(1-frac);
-      left=PAD+centerIdx*TAB_W-width/2+TAB_W/2;
-      left=Math.max(PAD, Math.min(PAD+(TABS.length-1)*TAB_W+TAB_W-width, left));
-    }
-    // 先端の border-radius：速度で角張る
-    const leadR=Math.max(4, pillH/2 - speedStretch*0.8);
-    const trailR=pillH/2;
-    const br=dx>=0
-      ? `${trailR}px ${leadR}px ${leadR}px ${trailR}px`
-      : `${leadR}px ${trailR}px ${trailR}px ${leadR}px`;
+    // エフェクト強度
+    const lens=Math.min(bulgeFactor*0.8+absVx*0.35, 1.0);
+    const prism=Math.min(absVx*0.55, 1.0);
 
-    pill.style.transition='none';
-    pill.style.top=pillTop+'px';
-    pill.style.height=pillH+'px';
-    pill.style.left=left+'px';
-    pill.style.width=width+'px';
-    pill.style.borderRadius=br;
+    pillGl.updateDrag(left, pillW, pillTop, pillH, lens, prism);
+    updateClipPaths(left, pillW, pillTop, pillH);
 
-    // SVGフィルター：速度が大きいときプリズム追加
-    if(Math.abs(vx)>0.8){
-      pill.classList.add('dragging','prism');
-      // feDisplacementMap の scale を速度に連動
-      const lensEl=document.querySelector('#pill-lens feDisplacementMap');
-      if(lensEl)lensEl.setAttribute('scale', Math.min(Math.abs(vx)*4,14).toFixed(1));
-    } else if(frac>0.05){
-      pill.classList.add('dragging');
-      pill.classList.remove('prism');
-      const lensEl=document.querySelector('#pill-lens feDisplacementMap');
-      if(lensEl)lensEl.setAttribute('scale', (frac*8).toFixed(1));
-    } else {
-      pill.classList.remove('dragging','prism');
-    }
-
-    // clip-path でタブ色をリアルタイム更新
-    updateClipPaths(left, width);
-
-    // ハプティクス
+    // ハプティクス：タブ境界を越えた瞬間
     const nearest=Math.round(centerIdx);
-    if(nearest!==lastHapticIdx && nearest!==baseIdx){
-      lastHapticIdx=nearest; haptic();
-    }
+    const clampedNearest=Math.max(0,Math.min(TABS.length-1,nearest));
+    if(clampedNearest!==lastHapticIdx){lastHapticIdx=clampedNearest;haptic();}
   }
 
-  /* タッチ */
+
   island.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
-    dragging=true;
-    startX=e.touches[0].clientX;
-    baseIdx=TABS.indexOf(_tab);
-    lastHapticIdx=baseIdx;
-    lastX=startX; lastT=performance.now(); lastVx=0;
-    pill.style.transition='none';
+    dragging=true;startX=e.touches[0].clientX;
+    baseIdx=TABS.indexOf(_tab);lastHapticIdx=baseIdx;
+    lastX=startX;lastT=performance.now();lastVx=0;
     island.classList.add('pressed');
   },{passive:true});
-
   island.addEventListener('touchmove',e=>{
     if(!dragging||e.touches.length!==1)return;
-    updateDrag(e.touches[0].clientX, performance.now());
+    updateDrag(e.touches[0].clientX,performance.now());
   },{passive:true});
-
-  function onEnd(clientX){
-    if(!dragging)return;
-    dragging=false;
+  function onEnd(cx){
+    if(!dragging)return;dragging=false;
     island.classList.remove('pressed');
-    const dx=clientX-startX;
-    const progress=dx/TAB_W;
-    const centerIdx=Math.max(0,Math.min(TABS.length-1,baseIdx-progress));
-    const nearest=Math.round(centerIdx);
-    const newIdx=Math.abs(centerIdx-baseIdx)>=0.35 ? nearest : baseIdx;
-    if(newIdx!==baseIdx) switchTab(TABS[newIdx], true);
-    else snapPill(baseIdx);
+    // 指を離した時のアイランド内X座標から最近タブを決定
+    const island=document.getElementById('tab-island');
+    const ir=island.getBoundingClientRect();
+    const fingerX=cx-ir.left;
+    const centerIdx=(fingerX-PAD)/TAB_W;
+    const ni=Math.max(0,Math.min(TABS.length-1,Math.round(centerIdx)));
+    if(ni!==baseIdx)switchTab(TABS[ni],true);
+    else pillGl.snapTo(baseIdx);
   }
-  island.addEventListener('touchend',e=>{ onEnd(e.changedTouches[0].clientX); },{passive:true});
-  island.addEventListener('touchcancel',()=>{ if(!dragging)return; dragging=false; island.classList.remove('pressed'); snapPill(baseIdx); },{passive:true});
-
-  /* マウス（デスクトップ） */
+  island.addEventListener('touchend',e=>onEnd(e.changedTouches[0].clientX),{passive:true});
+  island.addEventListener('touchcancel',()=>{
+    if(!dragging)return;dragging=false;
+    island.classList.remove('pressed');pillGl.snapTo(baseIdx);
+  },{passive:true});
   island.addEventListener('mousedown',e=>{
-    dragging=true;
-    startX=e.clientX;
-    baseIdx=TABS.indexOf(_tab);
-    lastHapticIdx=baseIdx;
-    lastX=startX; lastT=performance.now(); lastVx=0;
-    pill.style.transition='none';
-    island.classList.add('pressed');
-    e.preventDefault();
+    dragging=true;startX=e.clientX;baseIdx=TABS.indexOf(_tab);
+    lastHapticIdx=baseIdx;lastX=startX;lastT=performance.now();lastVx=0;
+    island.classList.add('pressed');e.preventDefault();
   });
-  window.addEventListener('mousemove',e=>{ if(!dragging)return; updateDrag(e.clientX,performance.now()); });
-  window.addEventListener('mouseup',e=>{ onEnd(e.clientX); });
+  window.addEventListener('mousemove',e=>{if(!dragging)return;updateDrag(e.clientX,performance.now());});
+  window.addEventListener('mouseup',e=>onEnd(e.clientX));
 }
 
 function renderGlobalToggles(){
@@ -1363,6 +1394,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   dbLoad();
   applyTheme(D.theme||'minimal');
   renderGlobalToggles();
+  pillGl.init();
   initPillDrag();
   switchTab('cal');
   requestAnimationFrame(()=>requestAnimationFrame(()=>{applyBarPadding();renderCal();}));
