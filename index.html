@@ -710,21 +710,45 @@ function renderThemeGrid(){
 const TABS=['cal','assign','settings'];
 const TAB_W=80;
 const PAD=6;
-const PILL_MARGIN=6;
+const PILL_MARGIN=2;
 const ISLAND_H=56;
 const PILL_BASE_H=ISLAND_H-PILL_MARGIN*2;
 
 function applyBarPadding(){
-  const bot=document.getElementById('lg-bottom');
-  const botH=bot.offsetHeight;
-
-  // 上部：コントロール群（cal-controls）の下端 + 余白
+  const calBg=document.getElementById('cal-bg');
+  const island=document.getElementById('tab-island');
   const ctrl=document.getElementById('cal-controls');
-  const topPad=ctrl?(ctrl.offsetTop+ctrl.offsetHeight+6):8;
+  const vcal=document.getElementById('vcal');
+  if(!calBg||!vcal)return;
 
-  // cal-bg のパディング：上=コントロール下端、下=タブバー高さ
-  document.getElementById('cal-bg').style.padding=topPad+'px 8px '+botH+'px';
+  // ── 上パディング ──
+  // cal-controls の bottom から vcal の top を引いた距離 + 余白
+  let topPad=42;
+  if(ctrl){
+    const ctrlR=ctrl.getBoundingClientRect();
+    const vcalR=vcal.getBoundingClientRect();
+    topPad=Math.ceil(ctrlR.bottom - vcalR.top) + 6;
+  }
 
+  // ── 下パディング ──
+  // アイランドの上端から画面最下端（vcalのbottom）までの距離
+  // vcal は inset:0 なので vcalR.bottom = window.innerHeight（safe-area除く）
+  let botPad=82;
+  if(island){
+    const islandR=island.getBoundingClientRect();
+    // アイランド上端の、vcal下端からの距離
+    const vcalR=vcal.getBoundingClientRect();
+    botPad=Math.ceil(vcalR.bottom - islandR.top) + 6;
+  }
+
+  calBg.style.paddingTop=topPad+'px';
+  calBg.style.paddingLeft='8px';
+  calBg.style.paddingRight='8px';
+  calBg.style.paddingBottom=botPad+'px';
+
+  // 課題・設定ビューのスペーサー
+  const bot=document.getElementById('lg-bottom');
+  const botH=bot?bot.offsetHeight:80;
   ['assign-tab-spacer','settings-tab-spacer'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.style.height=botH+'px';
   });
@@ -790,56 +814,78 @@ const pillGl=(function(){
 
   const FS=[
 'precision highp float;',
-'uniform vec2 u_res;',
-'uniform vec4 u_pill;',   // x,y,w,h (canvas px, top-left)
+'uniform vec2  u_res;',
+'uniform vec4  u_pill;',   // x,y,w,h canvas px
 'uniform float u_radius;',
-'uniform float u_lens;',  // 0=歪みなし 1=最大歪み
-'uniform float u_prism;', // 0=分光なし 1=最大
-'uniform vec3 u_acc;',
+'uniform float u_lens;',   // 0=static, >0=dragging
+'uniform float u_prism;',  // 0=none, >0=active
+'uniform vec3  u_acc;',
 'uniform float u_time;',
-// SDF
-'float sdRR(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.0))+min(max(q.x,q.y),0.0)-r;}',
-// ノイズ
-'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
-'float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}',
-'float fbm(vec2 p){float v=0.0,a=0.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.1;a*=0.5;}return v;}',
-// 虹色
-'vec3 rainbow(float t){return vec3(0.5+0.5*cos(6.283*(t)),0.5+0.5*cos(6.283*(t+0.333)),0.5+0.5*cos(6.283*(t+0.667)));}',
+
+// ─ Rounded Rect SDF ─
+'float sdRR(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}',
+
+// ─ ノイズ（境界歪み用）─
+'float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}',
+'float n21(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),u.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),u.x),u.y);}',
+'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<3;i++){v+=a*n21(p);p*=2.1;a*=.5;}return v;}',
+
+// ─ 虹色（HSV→RGB）─
+'vec3 hsv2rgb(float h){vec3 k=fract(h+vec3(1.,2./3.,1./3.))*6.;return clamp(abs(k-3.)-1.,0.,1.);}',
+
 'void main(){',
 '  vec2 p=vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);',
-'  vec2 pc=vec2(u_pill.x+u_pill.z*0.5, u_pill.y+u_pill.w*0.5);',
-'  vec2 ph=vec2(u_pill.z*0.5, u_pill.w*0.5);',
-'  vec2 lUV=(p-pc)/max(ph,vec2(1.0));', // -1〜1
-'  float dist=sdRR(p-pc, ph, u_radius);',
-'  float mask=1.0-smoothstep(-1.5,1.5,dist);',
-'  if(mask<0.001){gl_FragColor=vec4(0);return;}',
-// 境界からの距離（0=中心、1=縁）
-'  float edgeFactor=1.0-smoothstep(0.0,1.0,(-dist)/(min(ph.x,ph.y)));', // 縁ほど1
-// fresnel（縁6px以内）
-'  float fresnel=1.0-smoothstep(0.0,6.0,abs(dist));',
-// ノイズ歪み：境界部のみ・lens=0なら無効
-'  float lensAtEdge=u_lens*edgeFactor;',  // 中心はゼロ、縁ほど強い
-'  vec2 nUV=lUV*3.0+vec2(u_time*0.10,u_time*0.07);',
-'  float nx=fbm(nUV)*2.0-1.0;',
-'  float ny=fbm(nUV+vec2(3.7,1.3))*2.0-1.0;',
-// ベース：すりガラス（lens=0でも常に表示）
-'  vec3 col=u_acc;',
-'  float alpha=0.11+fresnel*0.09;',
-// 上縁シャイン（常時）
-'  float shine=smoothstep(0.0,0.35,-lUV.y)*smoothstep(-0.8,0.2,-abs(lUV.x));',
-'  col+=vec3(shine*0.50);alpha+=shine*0.16;',
-// 歪みハイライト（lens>0かつ境界部のみ）
-'  float rimG=pow(fresnel,1.5)*lensAtEdge*0.7;',
-'  col+=vec3(rimG);alpha+=rimG*0.35;',
-// 虹色分光（境界部・prism>0時のみ）
-'  float pT=atan(lUV.y,lUV.x)/6.283+0.5+u_time*0.05;',
-'  vec3 pCol=rainbow(pT);',
-'  float pMask=fresnel*u_prism*lensAtEdge;', // 境界部のみ
-'  col=mix(col,pCol,pMask*0.75);alpha+=pMask*0.18;',
-// 合成
-'  alpha=clamp(alpha,0.0,0.92)*mask;',
-'  float softEdge=smoothstep(0.0,1.5,dist+1.5);',
-'  alpha*=(1.0-softEdge*0.5);',
+'  vec2 pc=u_pill.xy+u_pill.zw*.5;',
+'  vec2 ph=u_pill.zw*.5;',
+'  vec2 lUV=(p-pc)/max(ph,vec2(1.));', // -1〜1, Y下向き
+'  float dist=sdRR(p-pc,ph,u_radius);',
+'  float mask=smoothstep(1.5,-1.5,dist);',
+'  if(mask<0.005){gl_FragColor=vec4(0);return;}',
+
+// ─ ベースすりガラス（常時）─
+// アクセントカラーの低透明度 + 白みかかった半透明
+'  vec3 col=mix(u_acc,vec3(1.),0.35);',  // アクセント+白混ぜ
+'  float alpha=0.13;',
+
+// ─ 1方向光源（左上45度）─
+// lUV.x が小さい（左）かつ lUV.y が小さい（上）ほど明るい
+'  float light=clamp((-lUV.x-lUV.y)*0.5+0.5,0.,1.);', // 0=暗, 1=明
+'  float diffuse=light*0.22;',
+'  col+=vec3(diffuse);alpha+=diffuse*0.5;',
+
+// ─ 上縁ハイライト（内側の光沢ライン）─
+// lUV.y が -1 に近い（上端）かつ内側3px以内
+'  float topEdgeDist=-dist-1.;',  // 上端内側の距離（正=内側）
+'  float topShine=smoothstep(3.5,0.,abs(dist+2.))*smoothstep(-0.9,0.3,-lUV.y);',
+'  col+=vec3(topShine*0.55);alpha+=topShine*0.20;',
+
+// ─ 縁フレネル（縁のみ、ぼんやり光る）─
+'  float rim=1.-smoothstep(0.,5.,abs(dist));',
+'  col+=vec3(rim*0.12);alpha+=rim*0.08;',
+
+// ─ ドラッグ中のエフェクト（lens>0の場合のみ）─
+'  if(u_lens>0.001){',
+// 境界部のエッジ係数（0=中心, 1=縁）
+'    float inner=-dist;',
+'    float halfMin=min(ph.x,ph.y);',
+'    float edgeF=1.-smoothstep(0.,halfMin*0.55,inner);', // 縁55%の厚さ
+// ノイズ（縁のみ流れる）
+'    vec2 nUV=lUV*2.5+vec2(u_time*0.09,u_time*0.06);',
+'    float nx=fbm(nUV)*2.-1.;',
+'    float rimGlow=pow(rim,2.)*u_lens*edgeF*0.65;',
+'    col+=vec3(rimGlow*0.9,rimGlow*0.95,rimGlow);', // わずかに暖色
+'    alpha+=rimGlow*0.4;',
+// ─ 分光：左右端付近のみ（上下は対称に）─
+// lUV.x が ±1 に近いところだけ
+'    float sideEdge=smoothstep(0.5,1.0,abs(lUV.x))*rim*u_prism;',
+'    float hue=lUV.y*0.3+u_time*0.04+0.5;',
+'    vec3 prismCol=hsv2rgb(hue);',
+'    col=mix(col,prismCol,sideEdge*0.70);',
+'    alpha+=sideEdge*0.20;',
+'  }',
+
+// ─ アンチエイリアス＋合成 ─
+'  alpha=clamp(alpha,0.,0.90)*mask;',
 '  gl_FragColor=vec4(col*alpha,alpha);',
 '}'
   ].join('\n');
@@ -936,15 +982,25 @@ const pillGl=(function(){
       _raf=requestAnimationFrame(draw);
     },
     setInstant(idx){
+      const island=document.getElementById('tab-island');
+      const ih=island?island.offsetHeight:ISLAND_H;
+      const ph=PILL_BASE_H;
+      const pt=Math.round((ih-ph)/2);
       state.left=PAD+idx*TAB_W;state.width=TAB_W;
-      state.top=PILL_MARGIN;state.height=PILL_BASE_H;
+      state.top=pt;state.height=ph;
+      state._ih=ih;
       state.lensStrength=0;state.prismStrength=0;
       state.vLeft=state.vWidth=state.vTop=state.vHeight=0;
       updateClipPaths(state.left,state.width,state.top,state.height);
     },
     snapTo(idx){
+      const island=document.getElementById('tab-island');
+      const ih=island?island.offsetHeight:ISLAND_H;
+      state._ih=ih;
+      const ph=PILL_BASE_H;
+      const pt=Math.round((ih-ph)/2);
       state.targetLeft=PAD+idx*TAB_W;state.targetWidth=TAB_W;
-      state.targetTop=PILL_MARGIN;state.targetHeight=PILL_BASE_H;
+      state.targetTop=pt;state.targetHeight=ph;
       if(!_raf)_raf=requestAnimationFrame(draw);
       const k=280,d=28,m=1;
       let last=performance.now();
@@ -969,6 +1025,7 @@ const pillGl=(function(){
       state.lensStrength=lens;state.prismStrength=prism;
       updateClipPaths(l,w,t,h);
     },
+    getIslandH(){ return state._ih||ISLAND_H; },
   };
 })();
 
@@ -993,7 +1050,7 @@ function initPillDrag(){
   const island=document.getElementById('tab-island');
   if(!island)return;
   let dragging=false,startX=0,baseIdx=0,lastHapticIdx=-1;
-  let lastVx=0,lastT=0,lastX=0;
+  let lastVx=0,lastT=0,lastX=0,lastAx=0;
 
   function updateDrag(curX,ts){
     const dx=curX-startX;
@@ -1002,38 +1059,40 @@ function initPillDrag(){
     lastVx=vx;lastT=ts;lastX=curX;
 
     // ── 指の位置をアイランド内座標に変換 ──
-    const island=document.getElementById('tab-island');
-    const ir=island.getBoundingClientRect();
-    // 指のアイランド内X座標
+    const islandEl=document.getElementById('tab-island');
+    const ir=islandEl.getBoundingClientRect();
     const fingerX=curX - ir.left;
 
-    // ピル幅：速度で横に伸びる（小さく調整）
+    // 加速度（vx の変化速度）
+    const ax=Math.abs(vx-lastVx)/(dt/1000+0.001); // px/s^2 近似
     const absVx=Math.abs(vx);
-    const speedStr=Math.min(absVx*35, TAB_W*0.45); // 伸び量を抑える
+
+    // ── ピル幅：速度で横に伸びる ──
+    const speedStr=Math.min(absVx*28, TAB_W*0.40);
     const pillW=TAB_W+speedStr;
 
-    // ピルの left：指の位置がピルの中心になる（クランプ付き）
+    // ── ピルの left：指の中心追従 ──
     let left=fingerX - pillW/2;
     left=Math.max(PAD, Math.min(PAD+TABS.length*TAB_W-pillW, left));
 
-    // ピルの height：タブ間の中間地点付近で膨らむ
-    // 指がどのタブの境界に近いか
-    const centerIdx=(fingerX-PAD)/TAB_W; // 連続値
-    const frac=centerIdx - Math.floor(centerIdx);
-    const borderDist=Math.min(frac, 1-frac); // 0=境界, 0.5=中心
-    const bulgeFactor=Math.max(0, 1-borderDist*4); // 境界付近だけ膨らむ
-    const bulge=bulgeFactor*14; // 最大14px（小さめ）
-    const pillH=PILL_BASE_H+bulge*2;
-    const pillTop=PILL_MARGIN-bulge;
+    // ── ピルの height：加速度に応じて膨らむ ──
+    const accelBulge=Math.min(ax*0.003, 16); // 加速度大→縦に膨らむ
+    const pillH=PILL_BASE_H+accelBulge*2;
+    const islandH2=pillGl.getIslandH();
+    const basePillTop=Math.round((islandH2-PILL_BASE_H)/2);
+    const pillTop=basePillTop-accelBulge;
 
-    // エフェクト強度
-    const lens=Math.min(bulgeFactor*0.8+absVx*0.35, 1.0);
-    const prism=Math.min(absVx*0.55, 1.0);
+    // ── エフェクト強度：ドラッグ中のみ、加速度・速度に連動 ──
+    const lens=Math.min(absVx*0.45+accelBulge*0.04, 1.0);
+    const prism=Math.min(absVx*0.50, 1.0);
+
+    lastAx=ax; // 加速度保存
 
     pillGl.updateDrag(left, pillW, pillTop, pillH, lens, prism);
     updateClipPaths(left, pillW, pillTop, pillH);
 
     // ハプティクス：タブ境界を越えた瞬間
+    const centerIdx=(fingerX-PAD)/TAB_W;
     const nearest=Math.round(centerIdx);
     const clampedNearest=Math.max(0,Math.min(TABS.length-1,nearest));
     if(clampedNearest!==lastHapticIdx){lastHapticIdx=clampedNearest;haptic();}
@@ -1055,8 +1114,8 @@ function initPillDrag(){
     if(!dragging)return;dragging=false;
     island.classList.remove('pressed');
     // 指を離した時のアイランド内X座標から最近タブを決定
-    const island=document.getElementById('tab-island');
-    const ir=island.getBoundingClientRect();
+    const islandEl=document.getElementById('tab-island');
+    const ir=islandEl.getBoundingClientRect();
     const fingerX=cx-ir.left;
     const centerIdx=(fingerX-PAD)/TAB_W;
     const ni=Math.max(0,Math.min(TABS.length-1,Math.round(centerIdx)));
